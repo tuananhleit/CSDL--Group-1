@@ -1,0 +1,75 @@
+SET NAMES utf8mb4;
+USE smart_ev_parking;
+
+CREATE TABLE TRU_SAC (
+    MaTru           VARCHAR(20)     NOT NULL,
+    MaCho           VARCHAR(20)     NOT NULL,
+    MaLoaiTru       VARCHAR(20)     NOT NULL,
+    TrangThaiTru    VARCHAR(20)     NOT NULL DEFAULT 'Available',
+    NgayLapDat      DATE            NOT NULL DEFAULT (CURRENT_DATE),
+
+    PRIMARY KEY (MaTru),
+    UNIQUE KEY UQ_TruSac_MaCho (MaCho),
+    CONSTRAINT FK_TruSac_ChoDoXe  FOREIGN KEY (MaCho)     REFERENCES CHO_DO_XE (MaCho),
+    CONSTRAINT FK_TruSac_LoaiTru  FOREIGN KEY (MaLoaiTru) REFERENCES LOAI_TRU_SAC (MaLoaiTru),
+    CONSTRAINT CHK_TruSac_TrangThai CHECK (TrangThaiTru IN ('Available', 'Charging', 'Faulted', 'Maintenance'))
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+INSERT INTO TRU_SAC (MaTru, MaCho, MaLoaiTru, NgayLapDat) VALUES
+('TS01', 'CHO01', 'LT02', '2026-01-15'),
+('TS02', 'CHO02', 'LT03', '2026-01-15'),
+('TS03', 'CHO03', 'LT04', '2026-02-01'),
+('TS04', 'CHO06', 'LT01', '2026-03-10'),
+('TS05', 'CHO07', 'LT02', '2026-03-10'),
+('TS06', 'CHO08', 'LT03', '2026-04-05'),
+('TS07', 'CHO10', 'LT03', '2026-05-20'),
+('TS08', 'CHO11', 'LT04', '2026-05-20'),
+('TS09', 'CHO13', 'LT05', '2026-06-01');
+
+INSERT INTO TRU_SAC (MaTru, MaCho, MaLoaiTru, NgayLapDat) VALUES
+('TS101', 'CHO101', 'LT02', '2026-01-24'),
+('TS102', 'CHO102', 'LT02', '2026-01-30'),
+('TS103', 'CHO103', 'LT01', '2026-01-20'),
+('TS104', 'CHO104', 'LT03', '2026-01-16'),
+('TS105', 'CHO105', 'LT03', '2026-01-25'),
+('TS106', 'CHO106', 'LT04', '2026-01-11'),
+('TS107', 'CHO109', 'LT05', '2026-01-30'),
+('TS108', 'CHO111', 'LT02', '2026-01-25'),
+('TS109', 'CHO112', 'LT02', '2026-01-12'),
+('TS110', 'CHO113', 'LT01', '2026-01-14'),
+('TS111', 'CHO114', 'LT03', '2026-01-11'),
+('TS112', 'CHO115', 'LT03', '2026-01-20'),
+('TS113', 'CHO116', 'LT04', '2026-01-26'),
+('TS114', 'CHO119', 'LT05', '2026-01-16'),
+('TS115', 'CHO121', 'LT02', '2026-01-12'),
+('TS116', 'CHO122', 'LT02', '2026-01-17'),
+('TS117', 'CHO123', 'LT01', '2026-01-23'),
+('TS118', 'CHO124', 'LT03', '2026-01-12'),
+('TS119', 'CHO125', 'LT03', '2026-01-27'),
+('TS120', 'CHO126', 'LT04', '2026-01-17'),
+('TS121', 'CHO129', 'LT05', '2026-01-30'),
+('TS122', 'CHO131', 'LT02', '2026-01-26'),
+('TS123', 'CHO132', 'LT02', '2026-01-16'),
+('TS124', 'CHO133', 'LT01', '2026-01-14'),
+('TS125', 'CHO134', 'LT03', '2026-01-11'),
+('TS126', 'CHO135', 'LT03', '2026-01-11'),
+('TS127', 'CHO136', 'LT04', '2026-01-15'),
+('TS128', 'CHO139', 'LT05', '2026-01-13'),
+('TS129', 'CHO141', 'LT02', '2026-01-18'),
+('TS130', 'CHO142', 'LT02', '2026-01-24'),
+('TS131', 'CHO143', 'LT01', '2026-01-23'),
+('TS132', 'CHO144', 'LT03', '2026-01-18'),
+('TS133', 'CHO145', 'LT03', '2026-01-16'),
+('TS134', 'CHO146', 'LT04', '2026-01-24'),
+('TS135', 'CHO149', 'LT05', '2026-01-12'),
+('TS136', 'CHO151', 'LT02', '2026-01-20'),
+('TS137', 'CHO152', 'LT02', '2026-01-16'),
+('TS138', 'CHO153', 'LT01', '2026-01-12'),
+('TS139', 'CHO154', 'LT03', '2026-01-28'),
+('TS140', 'CHO155', 'LT03', '2026-01-28'),
+('TS141', 'CHO156', 'LT04', '2026-01-11'),
+('TS142', 'CHO159', 'LT05', '2026-01-26');
+
+UPDATE TRU_SAC SET TrangThaiTru = 'Charging'    WHERE MaTru = 'TS03';
+UPDATE TRU_SAC SET TrangThaiTru = 'Maintenance' WHERE MaTru = 'TS05';
+UPDATE TRU_SAC SET TrangThaiTru = 'Faulted'     WHERE MaTru = 'TS08';
