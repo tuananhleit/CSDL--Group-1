@@ -5,7 +5,7 @@
 | Tên đề tài | Quản lý trạm sạc và bãi đỗ xe điện trong thành phố thông minh |
 | Mã đề tài | 01 |
 | Tên nhóm | Group 01 |
-| Thành viên | 1. Lê Tuấn Anh — N25DCAT064 (n25dcat064@student.ptithcm.edu.vn)<br>2. Đỗ Huy Ba — N25DCAT068 (n25dcat068@student.ptithcm.edu.vn)<br>3. Châu Gia Bảo — N22DCAT005 (n22dcat005@student.ptithcm.edu.vn)<br>4. Lê Hà Thành (lehathanh@ptithcm.edu.vn) |
+| Thành viên | 1. Lê Tuấn Anh — N25DCAT064 (n25dcat064@student.ptithcm.edu.vn)<br>2. Đỗ Huy Ba — N25DCAT068 (n25dcat068@student.ptithcm.edu.vn)<br>3. Châu Gia Bảo — N22DCAT005 (n22dcat005@student.ptithcm.edu.vn)|
 
 # 1. Giới thiệu và phạm vi dự án (phỏng theo chuẩn ISO/IEC/IEEE 29148)
 
