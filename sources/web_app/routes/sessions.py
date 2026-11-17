@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
-from db import test_connection, query_all, query_one, execute_statement, call_procedure
+from db import test_connection, query_all, query_one, execute_statement, call_procedure, format_db_error
 import datetime
 
 sessions_bp = Blueprint("sessions", __name__)
@@ -29,15 +29,17 @@ def list_sessions():
                 LIMIT 50
             """)
             available_slots = query_all("""
-                SELECT c.MaCho, c.MaViTri, c.LoaiCho, t.TenTram, ts.MaTru, ts.TrangThaiTru
+                SELECT c.MaCho, c.MaViTri, c.LoaiCho, c.TrangThaiCho, t.TenTram,
+                       ts.MaTru, ts.TrangThaiTru, lt.ChuanKetNoi, lt.CongSuat_kW
                 FROM CHO_DO_XE c
                 JOIN TRAM t ON c.MaTram = t.MaTram
                 LEFT JOIN TRU_SAC ts ON c.MaCho = ts.MaCho
+                LEFT JOIN LOAI_TRU_SAC lt ON ts.MaLoaiTru = lt.MaLoaiTru
                 WHERE c.TrangThaiCho IN ('Available', 'Reserved')
                 ORDER BY t.TenTram, c.MaViTri
             """)
             vehicles = query_all("""
-                SELECT pt.MaXe, pt.BienSo, pt.LoaiXe, kh.HoTen
+                SELECT pt.MaXe, pt.BienSo, pt.LoaiXe, pt.ChuanSac, kh.HoTen
                 FROM PHUONG_TIEN pt
                 JOIN KHACH_HANG kh ON pt.MaKH = kh.MaKH
                 WHERE pt.BiDenKhoa = FALSE AND kh.TrangThaiTK = 'Active'
@@ -62,23 +64,39 @@ def create_session():
     ma_phien = f"P{int(now.timestamp())}"
     
     try:
+        # Tu dong tim dat cho Active cua xe nay neu chua truyen
+        if not ma_dat_cho:
+            active_dc = query_one("""
+                SELECT MaDatCho FROM DAT_CHO 
+                WHERE MaXe = %s AND MaCho = %s AND TrangThaiDatCho = 'Active'
+                LIMIT 1
+            """, (ma_xe, ma_cho))
+            if active_dc:
+                ma_dat_cho = active_dc["MaDatCho"]
+
         execute_statement("""
             INSERT INTO PHIEN (MaPhien, MaXe, MaCho, MaDatCho, LoaiPhien, TrangThaiPhien, ThoiGianVao)
             VALUES (%s, %s, %s, %s, %s, 'Active', %s)
         """, (ma_phien, ma_xe, ma_cho, ma_dat_cho, loai_phien, now))
         
-        # Nếu là sạc điện, khởi tạo luôn bản ghi CHI_TIET_PHIEN_SAC
+        # Neu co dat cho, hoan tat ban ghi dat cho
+        if ma_dat_cho:
+            execute_statement("""
+                UPDATE DAT_CHO SET TrangThaiDatCho = 'Completed' WHERE MaDatCho = %s
+            """, (ma_dat_cho,))
+
+        # Nếu là sạc điện, khởi tạo bản ghi CHI_TIET_PHIEN_SAC
         if loai_phien == "ParkingAndCharging":
             tru = query_one("SELECT MaTru FROM TRU_SAC WHERE MaCho = %s", (ma_cho,))
             if tru:
                 execute_statement("""
-                    INSERT INTO CHI_TIET_PHIEN_SAC (MaPhien, MaTru, ThoiGianBatDauSac, ChiSoCongToDau, TrangThaiSac)
-                    VALUES (%s, %s, %s, 1000.00, 'Charging')
+                    INSERT INTO CHI_TIET_PHIEN_SAC (MaPhien, MaTru, ThoiGianBatDauSac, ChiSoCongToDau, HanMucSac_kWh, TrangThaiSac)
+                    VALUES (%s, %s, %s, 1000.00, 25.00, 'Charging')
                 """, (ma_phien, tru["MaTru"], now))
                 
-        flash(f"Mở phiên thành công! Mã: {ma_phien}", "success")
+        flash(f"Mở phiên thành công! Mã phiên: {ma_phien}", "success")
     except Exception as e:
-        flash(f"Không thể mở phiên: {str(e)}", "danger")
+        flash(f"Không thể mở phiên: {format_db_error(e)}", "danger")
         
     return redirect(url_for("sessions.list_sessions"))
 
@@ -87,10 +105,17 @@ def cutoff_session(id):
     chi_so_cuoi = float(request.form.get("chi_so_cuoi", 1025.50))
     now = datetime.datetime.now()
     try:
+        cts = query_one("SELECT ChiSoCongToDau, HanMucSac_kWh FROM CHI_TIET_PHIEN_SAC WHERE MaPhien = %s", (id,))
+        if cts:
+            cs_dau = float(cts["ChiSoCongToDau"] or 1000.00)
+            kwh = max(1.0, chi_so_cuoi - cs_dau)
+            if cts["HanMucSac_kWh"] is None or float(cts["HanMucSac_kWh"]) > kwh:
+                execute_statement("UPDATE CHI_TIET_PHIEN_SAC SET HanMucSac_kWh = %s WHERE MaPhien = %s", (kwh, id))
+
         call_procedure("sp_kiem_tra_va_ngat_sac_tu_dong", (id, chi_so_cuoi, now))
-        flash(f"Đã gọi sp_kiem_tra_va_ngat_sac_tu_dong cho phiên {id}!", "success")
+        flash(f"Đã gọi sp_kiem_tra_va_ngat_sac_tu_dong cho phiên {id}! (Trạng thái sạc: Đã ngắt, tính ân hạn 15p)", "success")
     except Exception as e:
-        flash(f"Lỗi khi ngắt sạc: {str(e)}", "danger")
+        flash(f"Lỗi khi ngắt sạc: {format_db_error(e)}", "danger")
         
     return redirect(url_for("sessions.list_sessions"))
 
@@ -110,19 +135,50 @@ def complete_session(id):
                 SET TrangThaiSac = 'Completed',
                     ThoiGianKetThucSac = COALESCE(ThoiGianKetThucSac, %s),
                     ChiSoCongToCuoi = COALESCE(ChiSoCongToCuoi, 1025.50),
-                    LyDoKetThuc = COALESCE(LyDoKetThuc, 'UserStop')
+                    LyDoKetThuc = COALESCE(LyDoKetThuc, 'UserStopped')
                 WHERE MaPhien = %s AND TrangThaiSac = 'Charging'
             """, (now, id))
 
-        # Cap nhat phien thanh Completed (Trigger TRG_Phien_SyncTrangThai_Upd se tu dong tra cho & tru ve Available)
+        # Cap nhat phien thanh Completed (Trigger TRG_Phien_SyncTrangThai_Upd tu dong tra o & tru ve Available)
         execute_statement("""
             UPDATE PHIEN
             SET TrangThaiPhien = 'Completed', ThoiGianRa = %s
             WHERE MaPhien = %s
         """, (now, id))
 
-        flash(f"Phiên {id} đã hoàn tất thành công! Xe đã ra bãi, ô đỗ và trụ sạc đã được tự động giải phóng.", "success")
+        # Tu dong lap HOA_DON cho phien neu chua co
+        existing_hd = query_one("SELECT MaHD FROM HOA_DON WHERE MaPhien = %s", (id,))
+        if not existing_hd:
+            xe = query_one("SELECT pt.LoaiXe FROM PHIEN p JOIN PHUONG_TIEN pt ON p.MaXe = pt.MaXe WHERE p.MaPhien = %s", (id,))
+            is_car = (xe["LoaiXe"] == "Car_4W") if xe else True
+            phi_do = 20000.0 if is_car else 5000.0
+
+            phi_sac = 0.0
+            if p["LoaiPhien"] == "ParkingAndCharging":
+                cts = query_one("SELECT SoKWh FROM CHI_TIET_PHIEN_SAC WHERE MaPhien = %s", (id,))
+                sokwh = float(cts["SoKWh"]) if (cts and cts["SoKWh"] is not None) else 25.5
+                phi_sac = sokwh * 3850.0
+
+            phi_sau_sac = 0.0
+
+            # Khau tru tien coc
+            tien_khau_tru = 0.0
+            p_full = query_one("SELECT MaDatCho FROM PHIEN WHERE MaPhien = %s", (id,))
+            if p_full and p_full["MaDatCho"]:
+                dc = query_one("SELECT TienCoc FROM DAT_CHO WHERE MaDatCho = %s", (p_full["MaDatCho"],))
+                if dc and dc["TienCoc"]:
+                    tien_khau_tru = min(float(dc["TienCoc"]), phi_do + phi_sac + phi_sau_sac)
+
+            ma_hd = f"HD{int(now.timestamp())}"
+            execute_statement("""
+                INSERT INTO HOA_DON (MaHD, MaPhien, PhiDoXe, PhiSacDien, PhiDoSauSac, TienKhauTru, PhuongThucThanhToan, TrangThaiThanhToan, NgayLapHoaDon)
+                VALUES (%s, %s, %s, %s, %s, %s, 'Wallet', 'Unpaid', %s)
+            """, (ma_hd, id, phi_do, phi_sac, phi_sau_sac, tien_khau_tru, now))
+
+            flash(f"Phiên {id} đã hoàn tất! Hóa đơn {ma_hd} đã được lập (Đã khấu trừ cọc {tien_khau_tru:,.0f}đ). Bạn có thể thanh toán tại mục Hóa Đơn & Ví.", "success")
+        else:
+            flash(f"Phiên {id} đã hoàn tất thành công! Xe đã ra bãi, ô đỗ và trụ sạc đã được tự động giải phóng.", "success")
     except Exception as e:
-        flash(f"Lỗi khi hoàn tất phiên: {str(e)}", "danger")
+        flash(f"Lỗi khi hoàn tất phiên: {format_db_error(e)}", "danger")
         
     return redirect(url_for("sessions.list_sessions"))

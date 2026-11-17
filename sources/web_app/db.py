@@ -86,3 +86,23 @@ def call_procedure(proc_name, args=()):
         raise e
     finally:
         conn.close()
+
+def format_db_error(e):
+    """Chuyển đổi các mã lỗi kỹ thuật MySQL thành thông báo thân thiện cho người dùng."""
+    msg = str(e)
+    # Lỗi từ Trigger Signal SQLSTATE '45000'
+    if "45000" in msg:
+        parts = msg.split(":")
+        return parts[-1].strip()
+    # Lỗi trùng khóa UNIQUE
+    if "1062" in msg:
+        if "UQ_DatCho_Active_Xe" in msg:
+            return "Phương tiện này hiện đang có 1 đặt chỗ Active chưa sử dụng. Mỗi xe chỉ được đặt tối đa 1 chỗ cùng lúc."
+        if "UQ_DatCho_Active_Cho" in msg:
+            return "Vị trí ô đỗ này vừa có khách hàng khác đặt trước. Vui lòng chọn vị trí ô đỗ khác."
+        if "UQ_Phien_Active_Xe" in msg:
+            return "Phương tiện này đang có 1 phiên đỗ/sạc đang chạy trong bãi. Không thể mở thêm phiên mới cho cùng 1 xe."
+        if "UQ_Phien_Active_Cho" in msg:
+            return "Vị trí ô đỗ này hiện đang có xe khác đỗ. Vui lòng chọn ô đỗ khả dụng."
+        return "Dữ liệu bị trùng lặp trong hệ thống (Duplicate Key)."
+    return msg

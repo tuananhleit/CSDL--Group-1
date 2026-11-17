@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
-from db import test_connection, query_all, execute_statement
+from db import test_connection, query_all, execute_statement, format_db_error
 import datetime
 
 bookings_bp = Blueprint("bookings", __name__)
@@ -26,14 +26,17 @@ def list_bookings():
                 LIMIT 50
             """)
             available_slots = query_all("""
-                SELECT c.MaCho, c.MaViTri, c.LoaiCho, t.TenTram
+                SELECT c.MaCho, c.MaViTri, c.LoaiCho, t.TenTram,
+                       ts.MaTru, ts.TrangThaiTru, lt.ChuanKetNoi, lt.CongSuat_kW
                 FROM CHO_DO_XE c
                 JOIN TRAM t ON c.MaTram = t.MaTram
+                LEFT JOIN TRU_SAC ts ON c.MaCho = ts.MaCho
+                LEFT JOIN LOAI_TRU_SAC lt ON ts.MaLoaiTru = lt.MaLoaiTru
                 WHERE c.TrangThaiCho = 'Available'
                 ORDER BY t.TenTram, c.MaViTri
             """)
             vehicles = query_all("""
-                SELECT pt.MaXe, pt.BienSo, pt.LoaiXe, kh.HoTen
+                SELECT pt.MaXe, pt.BienSo, pt.LoaiXe, pt.ChuanSac, kh.HoTen
                 FROM PHUONG_TIEN pt
                 JOIN KHACH_HANG kh ON pt.MaKH = kh.MaKH
                 WHERE pt.BiDenKhoa = FALSE AND kh.TrangThaiTK = 'Active'
@@ -63,9 +66,9 @@ def create_booking():
             INSERT INTO DAT_CHO (MaDatCho, MaXe, MaCho, ThoiGianDat, ThoiGianHetHan, TienCoc, TrangThaiDatCho)
             VALUES (%s, %s, %s, %s, %s, %s, 'Active')
         """, (ma_dat_cho, ma_xe, ma_cho, now, het_han, tien_coc))
-        flash(f"Đặt chỗ thành công! Mã: {ma_dat_cho} (Ô đỗ đã chuyển sang Reserved)", "success")
+        flash(f"Đặt chỗ thành công! Mã: {ma_dat_cho} (Ô đỗ đã chuyển sang Reserved trong {minutes} phút)", "success")
     except Exception as e:
-        flash(f"Không thể đặt chỗ: {str(e)}", "danger")
+        flash(f"Không thể đặt chỗ: {format_db_error(e)}", "danger")
         
     return redirect(url_for("bookings.list_bookings"))
 
@@ -77,6 +80,6 @@ def cancel_booking(id):
         """, (id,))
         flash(f"Đã hủy đặt chỗ {id}! (Ô đỗ tự động trả về Available)", "info")
     except Exception as e:
-        flash(f"Lỗi khi hủy đặt chỗ: {str(e)}", "danger")
+        flash(f"Lỗi khi hủy đặt chỗ: {format_db_error(e)}", "danger")
         
     return redirect(url_for("bookings.list_bookings"))

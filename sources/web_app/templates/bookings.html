@@ -27,7 +27,7 @@
                 <select name="ma_xe" required class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
                     <option value="">-- Chọn xe muốn đặt --</option>
                     {% for v in vehicles %}
-                    <option value="{{ v.MaXe }}">{{ v.BienSo }} ({{ v.LoaiXe }}) - {{ v.HoTen }}</option>
+                    <option value="{{ v.MaXe }}">{{ v.BienSo }} ({{ v.LoaiXe }}{% if v.ChuanSac %} - {{ v.ChuanSac }}{% endif %}) - {{ v.HoTen }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -38,7 +38,9 @@
                 <select name="ma_cho" required class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
                     <option value="">-- Chọn ô đỗ trống --</option>
                     {% for s in available_slots %}
-                    <option value="{{ s.MaCho }}">{{ s.TenTram }} - Ô {{ s.MaViTri }} ({{ s.LoaiCho }})</option>
+                    <option value="{{ s.MaCho }}">
+                        {{ s.TenTram }} - Ô {{ s.MaViTri }} ({{ s.LoaiCho }}) {% if s.MaTru %}[Trụ {{ s.MaTru }}: {{ s.ChuanKetNoi }} {{ s.CongSuat_kW }}kW]{% else %}[Chỉ đỗ xe]{% endif %}
+                    </option>
                     {% endfor %}
                 </select>
             </div>
