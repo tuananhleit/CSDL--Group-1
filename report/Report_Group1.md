@@ -144,7 +144,7 @@ Nhóm kiểm tra từng bảng theo phụ thuộc hàm xác định bởi các k
 
 *Bảng 2. Khóa ứng viên và dạng chuẩn của các bảng*
 
-Hai cột sinh (SoKWh, TongTien) là giá trị dẫn xuất nhưng được khai báo GENERATED ALWAYS AS ... STORED, nên cơ sở dữ liệu tự tính và không thể bị nhập lệch; vì vậy không phá vỡ chuẩn hóa. Các cột tổng hợp theo phí (PhiDoXe, PhiSacDien, PhiDoSauSac) trong HOA_DON được giữ lại có chủ đích để chốt giá trị tại thời điểm lập hóa đơn; tính đúng đắn của chúng được đối chiếu với CHI_TIET_PHI bằng truy vấn Q10 (mục 3.7). Tương tự, số dư SoDuViDienTu là số dư hiện hành, còn lịch sử nằm ở sổ cái; truy vấn Q11 đối chiếu hai nguồn này.
+Hai cột sinh (SoKWh, TongTien) là giá trị dẫn xuất nhưng được khai báo GENERATED ALWAYS AS ... STORED, nên cơ sở dữ liệu tự tính và không thể bị nhập lệch; vì vậy không phá vỡ chuẩn hóa. Các cột tổng hợp theo phí (PhiDoXe, PhiSacDien, PhiDoSauSac) trong HOA_DON được giữ lại có chủ đích để chốt giá trị tại thời điểm lập hóa đơn; tính đúng đắn của chúng được đối chiếu với CHI_TIET_PHI bằng truy vấn Q10 (mục 3.6). Tương tự, số dư SoDuViDienTu là số dư hiện hành, còn lịch sử nằm ở sổ cái; truy vấn Q11 đối chiếu hai nguồn này.
 
 # 3. Cài đặt cơ sở dữ liệu
 
@@ -1082,9 +1082,20 @@ Kết quả mong đợi của VW_DOANH_THU_TRAM_THANG (hóa đơn Paid, theo th�
 | T08 | 2026-10 | 451 | 76.343.900 |
 | T09 | 2026-10 | 481 | 77.986.550 |
 
+## 3.8 Tích hợp Giao diện Web & Backend (Python/Flask)
+
+Nhóm xây dựng ứng dụng web tích hợp hoàn chỉnh bằng Python/Flask và thư viện `mysql-connector-python` để kết nối trực tiếp với cơ sở dữ liệu `smart_ev_parking`, hiện thực hóa các quy tắc nghiệp vụ lên giao diện trực quan:
+
+- **Dashboard:** Thống kê tổng quan số lượng khách hàng, trạm sạc, ô đỗ trống, phiên đang chạy và tổng doanh thu thực thu.
+- **Quản lý Trạm & Ô đỗ (`/stations`):** Tích hợp View `VW_CHO_DO_TRONG` cho phép tra cứu trạng thái ô đỗ khả dụng và công suất sạc theo từng trạm thời gian thực.
+- **Đặt chỗ (`/bookings`):** Giao diện giữ chỗ trước cho xe, tự động kích hoạt các trigger kiểm tra tương thích loại xe, ô bảo trì và chuyển trạng thái ô sang `Reserved`.
+- **Phiên sạc & đỗ xe (`/sessions`):** Mở phiên dịch vụ mới, kết nối IoT và cho phép kích hoạt ngắt sạc tự động thông minh qua Stored Procedure `sp_kiem_tra_va_ngat_sac_tu_dong`.
+- **Hóa đơn & Ví điện tử (`/billing`):** Hiển thị hóa đơn (tự tính bằng cột sinh `STORED`), thực thi thanh toán qua ví (`sp_thanh_toan_hoa_don_vi`) hoặc QR động (`sp_thanh_toan_walkin_ngoai`), và kiểm soát sổ cái bất biến (Append-Only) trên bảng `GIAO_DICH_VI`.
+- **Bảng điều khiển 13 Truy vấn (`/queries`):** Cung cấp giao diện chạy tương tác 13 câu truy vấn đối soát và 2 View hệ thống, hiển thị trực quan dữ liệu trả về và thời gian thực thi (ms).
+
 # 4. Kiểm thử
 
-Các ca kiểm thử dưới đây chạy trên bộ dữ liệu mẫu ở mục 3.5 (các ca dùng mã của bộ dữ liệu nhỏ ban đầu), mỗi ca đặt trong giao dịch (START TRANSACTION ... ROLLBACK) để không làm thay đổi dữ liệu. Mỗi ca nêu lệnh và lỗi mong đợi theo định dạng của MySQL: lỗi do trigger hoặc thủ tục có mã 1644 (SQLSTATE 45000) kèm thông báo tiếng Việt; lỗi ràng buộc CHECK có mã 3819 nêu tên ràng buộc; lỗi UNIQUE có mã 1062.
+Các ca kiểm thử dưới đây chạy trên bộ dữ liệu mẫu ở mục 3.5 (các ca dùng mã của bộ dữ liệu nhỏ ban đầu), mỗi ca đặt trong giao dịch (START TRANSACTION ... ROLLBACK) để không làm thay đổi dữ liệu. Toàn bộ mã kiểm thử được lưu trữ hoàn chỉnh tại script `mysql/19_tests.sql` để thuận tiện chạy thử nghiệm trong MySQL Workbench hoặc mysql client. Mỗi ca nêu lệnh và lỗi mong đợi theo định dạng của MySQL: lỗi do trigger hoặc thủ tục có mã 1644 (SQLSTATE 45000) kèm thông báo tiếng Việt; lỗi ràng buộc CHECK có mã 3819 nêu tên ràng buộc; lỗi UNIQUE có mã 1062.
 
 ### TC1 — Một xe không thể có hai phiên đang chạy
 
