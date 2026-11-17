@@ -131,13 +131,22 @@
                             {% endif %}
                         </td>
                         <td class="py-3 px-3 text-center">
-                            {% if p.TrangThaiPhien == 'Active' and p.LoaiPhien == 'ParkingAndCharging' %}
-                            <form method="POST" action="{{ url_for('sessions.cutoff_session', id=p.MaPhien) }}" class="inline-flex items-center space-x-1">
-                                <input type="number" step="0.5" name="chi_so_cuoi" value="1030.0" class="w-16 px-1.5 py-0.5 text-[11px] border border-slate-300 rounded font-mono" title="Chỉ số công tơ cuối">
-                                <button type="submit" class="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded text-[11px] font-semibold transition-colors" title="Kích hoạt kiểm tra ngắt tự động (Auto Cut-off)">
-                                    Ngắt Sạc
-                                </button>
-                            </form>
+                            {% if p.TrangThaiPhien == 'Active' %}
+                            <div class="flex items-center justify-center space-x-1">
+                                {% if p.LoaiPhien == 'ParkingAndCharging' and p.TrangThaiSac == 'Charging' %}
+                                <form method="POST" action="{{ url_for('sessions.cutoff_session', id=p.MaPhien) }}" class="inline-flex items-center space-x-1">
+                                    <input type="number" step="0.5" name="chi_so_cuoi" value="1030.0" class="w-14 px-1 py-0.5 text-[11px] border border-slate-300 rounded font-mono" title="Chỉ số điện cuối">
+                                    <button type="submit" class="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded text-[11px] font-semibold transition-colors shadow-sm" title="Ngắt điện an toàn">
+                                        Ngắt Sạc
+                                    </button>
+                                </form>
+                                {% endif %}
+                                <form method="POST" action="{{ url_for('sessions.complete_session', id=p.MaPhien) }}" onsubmit="return confirm('Xác nhận cho xe {{ p.BienSo }} ra bãi và hoàn tất phiên {{ p.MaPhien }}?')">
+                                    <button type="submit" class="px-2 py-1 bg-slate-800 hover:bg-slate-900 text-white rounded text-[11px] font-semibold transition-colors shadow-sm" title="Xe ra bãi & trả chỗ">
+                                        Ra Bãi
+                                    </button>
+                                </form>
+                            </div>
                             {% else %}
                             <span class="text-slate-300">—</span>
                             {% endif %}

@@ -25,7 +25,7 @@ def list_sessions():
                 JOIN CHO_DO_XE c ON p.MaCho = c.MaCho
                 JOIN TRAM t ON c.MaTram = t.MaTram
                 LEFT JOIN CHI_TIET_PHIEN_SAC cts ON p.MaPhien = cts.MaPhien
-                ORDER BY p.ThoiGianVao DESC
+                ORDER BY (p.TrangThaiPhien = 'Active') DESC, p.ThoiGianVao DESC
                 LIMIT 50
             """)
             available_slots = query_all("""
@@ -91,5 +91,38 @@ def cutoff_session(id):
         flash(f"Đã gọi sp_kiem_tra_va_ngat_sac_tu_dong cho phiên {id}!", "success")
     except Exception as e:
         flash(f"Lỗi khi ngắt sạc: {str(e)}", "danger")
+        
+    return redirect(url_for("sessions.list_sessions"))
+
+@sessions_bp.route("/sessions/<id>/complete", methods=["POST"])
+def complete_session(id):
+    now = datetime.datetime.now()
+    try:
+        p = query_one("SELECT MaCho, LoaiPhien, MaXe FROM PHIEN WHERE MaPhien = %s", (id,))
+        if not p:
+            flash(f"Không tìm thấy phiên {id}!", "danger")
+            return redirect(url_for("sessions.list_sessions"))
+            
+        # Neu la sac, hoan tat chi tiet phien sac truoc neu con dang sac
+        if p["LoaiPhien"] == "ParkingAndCharging":
+            execute_statement("""
+                UPDATE CHI_TIET_PHIEN_SAC
+                SET TrangThaiSac = 'Completed',
+                    ThoiGianKetThucSac = COALESCE(ThoiGianKetThucSac, %s),
+                    ChiSoCongToCuoi = COALESCE(ChiSoCongToCuoi, 1025.50),
+                    LyDoKetThuc = COALESCE(LyDoKetThuc, 'UserStop')
+                WHERE MaPhien = %s AND TrangThaiSac = 'Charging'
+            """, (now, id))
+
+        # Cap nhat phien thanh Completed (Trigger TRG_Phien_SyncTrangThai_Upd se tu dong tra cho & tru ve Available)
+        execute_statement("""
+            UPDATE PHIEN
+            SET TrangThaiPhien = 'Completed', ThoiGianRa = %s
+            WHERE MaPhien = %s
+        """, (now, id))
+
+        flash(f"Phiên {id} đã hoàn tất thành công! Xe đã ra bãi, ô đỗ và trụ sạc đã được tự động giải phóng.", "success")
+    except Exception as e:
+        flash(f"Lỗi khi hoàn tất phiên: {str(e)}", "danger")
         
     return redirect(url_for("sessions.list_sessions"))

@@ -22,7 +22,7 @@ def list_bookings():
                 JOIN KHACH_HANG kh ON pt.MaKH = kh.MaKH
                 JOIN CHO_DO_XE c ON d.MaCho = c.MaCho
                 JOIN TRAM t ON c.MaTram = t.MaTram
-                ORDER BY d.ThoiGianDat DESC
+                ORDER BY (d.TrangThaiDatCho = 'Active') DESC, d.ThoiGianDat DESC
                 LIMIT 50
             """)
             available_slots = query_all("""

@@ -40,7 +40,7 @@ def list_billing():
                         JOIN PHUONG_TIEN pt ON p.MaXe = pt.MaXe
                         JOIN KHACH_HANG kh ON pt.MaKH = kh.MaKH
                         WHERE kh.MaKH = %s
-                        ORDER BY hd.NgayLapHoaDon DESC
+                        ORDER BY (hd.TrangThaiThanhToan = 'Unpaid') DESC, hd.NgayLapHoaDon DESC
                         LIMIT 30
                     """, (c_id,))
 
@@ -66,7 +66,7 @@ def list_billing():
                         JOIN PHUONG_TIEN pt ON p.MaXe = pt.MaXe
                         JOIN KHACH_HANG kh ON pt.MaKH = kh.MaKH
                         WHERE hd.MaHD LIKE %s OR pt.BienSo LIKE %s OR kh.MaKH LIKE %s OR kh.HoTen LIKE %s
-                        ORDER BY hd.NgayLapHoaDon DESC
+                        ORDER BY (hd.TrangThaiThanhToan = 'Unpaid') DESC, hd.NgayLapHoaDon DESC
                         LIMIT 50
                     """, (f"%{search}%", f"%{search}%", f"%{search}%", f"%{search}%"))
                 else:
@@ -79,7 +79,7 @@ def list_billing():
                         JOIN PHIEN p ON hd.MaPhien = p.MaPhien
                         JOIN PHUONG_TIEN pt ON p.MaXe = pt.MaXe
                         JOIN KHACH_HANG kh ON pt.MaKH = kh.MaKH
-                        ORDER BY hd.NgayLapHoaDon DESC
+                        ORDER BY (hd.TrangThaiThanhToan = 'Unpaid') DESC, hd.NgayLapHoaDon DESC
                         LIMIT 50
                     """)
                 
