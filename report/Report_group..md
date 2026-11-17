@@ -72,7 +72,7 @@ Mô hình EER dùng ký hiệu Chen: hình chữ nhật là thực thể (viền
 
 Mô hình gồm 13 thực thể (12 thực thể mạnh: KHACH_HANG, PHUONG_TIEN, GIAO_DICH_VI, QUAN_TRI_VIEN, TRAM, CHO_DO_XE, LOAI_TRU_SAC, TRU_SAC, BANG_GIA, DAT_CHO, PHIEN, HOA_DON và 1 thực thể yếu: CHI_TIET_PHI), 2 lớp con (PHIEN_SAC, PHIEN_DO_XE) và 18 mối quan hệ.
 
-![Hình 1](EER.png)
+![Hình 1](images/EER.png)
 
 *Hình 1. Sơ đồ EER (ký hiệu Chen) của hệ thống*
 
@@ -111,7 +111,7 @@ Bảng 1 liệt kê các bảng, thuộc tính và ràng buộc chính; PK là k
 
 *Bảng 1. Các bảng của lược đồ quan hệ*
 
-![Hình 2](luoc_do_quan_he.png)
+![Hình 2](images/luoc_do_quan_he.png)
 
 *Hình 2. Lược đồ quan hệ (ánh xạ từ sơ đồ EER) — 14 bảng*
 
