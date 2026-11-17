@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}13 Truy Vấn & 2 View Đối Soát{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">13 Truy Vấn Nghiệp Vụ & 2 View Hệ Thống</h1>
+            <p class="text-xs sm:text-sm text-slate-500 mt-1">
+                Kiểm chứng trực tiếp các kỹ thuật SQL nâng cao: CTE, Window Function (RANK, LAG), Subquery tương quan, Derived Table và 2 View phân tích.
+            </p>
+        </div>
+    </div>
+
+    <!-- Main Grid: Query Selector + Query Runner -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- Sidebar: Query List -->
+        <div class="lg:col-span-1 space-y-2">
+            <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-2">Danh Sách Truy Vấn</h3>
+                <div class="space-y-1 max-h-[600px] overflow-y-auto pr-1">
+                    {% for k, q in queries_dict.items() %}
+                    <a href="{{ url_for('queries.queries_page', q=k) }}"
+                       class="block px-3 py-2 rounded-xl text-xs font-medium transition-all {% if selected_key == k %}bg-emerald-600 text-white shadow-sm font-semibold{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+                        <div class="truncate">{{ q.title }}</div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Query Execution & Results Pane -->
+        <div class="lg:col-span-3 space-y-4">
+            <!-- Query Info Card -->
+            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                    <h2 class="text-base font-bold text-slate-900">{{ query_info.title }}</h2>
+                    <div class="flex items-center space-x-2 text-xs">
+                        <span class="px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 font-mono font-medium">
+                            <i class="fa-solid fa-stopwatch mr-1 text-slate-400"></i>{{ exec_time_ms }} ms
+                        </span>
+                        <span class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-mono font-medium border border-emerald-200">
+                            {{ results|length }} dòng
+                        </span>
+                    </div>
+                </div>
+
+                <!-- SQL Code Box -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Câu lệnh SQL (MySQL 8.0):</label>
+                    <pre class="bg-slate-900 text-emerald-400 p-4 rounded-xl text-xs font-mono overflow-x-auto leading-relaxed border border-slate-800 shadow-inner"><code>{{ query_info.sql }}</code></pre>
+                </div>
+
+                <!-- Note for Verification Queries (Q10, Q11, Q13) -->
+                {% if selected_key in ['Q10', 'Q11', 'Q13'] %}
+                <div class="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800 flex items-start space-x-2">
+                    <i class="fa-solid fa-circle-info text-blue-600 mt-0.5"></i>
+                    <div>
+                        <strong>Mục đích đối soát tính toàn vẹn:</strong> Đây là truy vấn kiểm tra chéo (Audit Query).
+                        Kết quả kỳ vọng chuẩn là <strong>0 dòng</strong>, chứng minh dữ liệu giữa các bảng và sổ cái hoàn toàn nhất quán!
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Error Banner -->
+            {% if error_msg %}
+            <div class="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-800 flex items-start space-x-2">
+                <i class="fa-solid fa-triangle-exclamation text-rose-600 mt-0.5"></i>
+                <div>
+                    <strong>Lỗi thực thi SQL:</strong> <code>{{ error_msg }}</code>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Results Table Card -->
+            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                <h3 class="text-sm font-bold text-slate-900 mb-4 flex items-center">
+                    <i class="fa-solid fa-table text-slate-500 mr-2"></i>Kết Quả Thực Thi
+                </h3>
+
+                {% if results %}
+                <div class="overflow-x-auto max-h-[500px]">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-50 text-slate-500 uppercase tracking-wider border-b border-slate-200 sticky top-0">
+                            <tr>
+                                {% for col in columns %}
+                                <th class="py-2.5 px-3 whitespace-nowrap">{{ col }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 font-mono">
+                            {% for row in results %}
+                            <tr class="hover:bg-slate-50/80 transition-colors">
+                                {% for col in columns %}
+                                <td class="py-2 px-3 whitespace-nowrap text-slate-700">
+                                    {{ row[col] if row[col] is not none else 'NULL' }}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% elif not error_msg %}
+                <div class="text-center py-12 text-slate-400 space-y-2">
+                    <div class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                    <p class="font-semibold text-slate-700 text-sm">Truy vấn trả về 0 dòng</p>
+                    {% if selected_key in ['Q10', 'Q11', 'Q13'] %}
+                    <p class="text-xs text-emerald-600 font-medium">Toàn bộ dữ liệu đối soát đạt chuẩn toàn vẹn 100%!</p>
+                    {% else %}
+                    <p class="text-xs text-slate-400">Không có bản ghi nào thỏa mãn điều kiện lọc.</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Smart EV Parking & Charging{% endblock %} - Group 01 PTIT</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#10b981', // Emerald green for EV
+                        secondary: '#0284c7', // Sky blue
+                        dark: '#0f172a',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans">
+    <!-- Header / Navbar -->
+    <nav class="bg-slate-900 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-3">
+                    <a href="{{ url_for('main.dashboard') }}" class="flex items-center space-x-3 group">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
+                            <i class="fa-solid fa-charging-station text-xl"></i>
+                        </div>
+                        <div>
+                            <span class="font-bold text-lg tracking-tight group-hover:text-emerald-400 transition-colors">Smart EV Parking</span>
+                            <span class="hidden sm:inline-block ml-2 px-2 py-0.5 text-xs bg-emerald-500/20 text-emerald-400 rounded-full font-medium border border-emerald-500/30">Group 01</span>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Nav links -->
+                <div class="hidden md:flex items-center space-x-1 text-sm font-medium">
+                    <a href="{{ url_for('main.dashboard') }}" class="px-3 py-2 rounded-lg hover:bg-slate-800 hover:text-emerald-400 transition-colors">
+                        <i class="fa-solid fa-chart-pie mr-1.5 text-slate-400"></i>Dashboard
+                    </a>
+                    <a href="{{ url_for('stations.list_stations') }}" class="px-3 py-2 rounded-lg hover:bg-slate-800 hover:text-emerald-400 transition-colors">
+                        <i class="fa-solid fa-square-parking mr-1.5 text-slate-400"></i>Trạm & Chỗ Đỗ
+                    </a>
+                    <a href="{{ url_for('bookings.list_bookings') }}" class="px-3 py-2 rounded-lg hover:bg-slate-800 hover:text-emerald-400 transition-colors">
+                        <i class="fa-solid fa-calendar-check mr-1.5 text-slate-400"></i>Đặt Chỗ
+                    </a>
+                    <a href="{{ url_for('sessions.list_sessions') }}" class="px-3 py-2 rounded-lg hover:bg-slate-800 hover:text-emerald-400 transition-colors">
+                        <i class="fa-solid fa-bolt mr-1.5 text-slate-400"></i>Phiên Sạc / Đỗ
+                    </a>
+                    <a href="{{ url_for('billing.list_billing') }}" class="px-3 py-2 rounded-lg hover:bg-slate-800 hover:text-emerald-400 transition-colors">
+                        <i class="fa-solid fa-receipt mr-1.5 text-slate-400"></i>Hóa Đơn & Ví
+                    </a>
+                    <a href="{{ url_for('queries.queries_page') }}" class="px-3 py-2 rounded-lg bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-600/30 transition-colors">
+                        <i class="fa-solid fa-database mr-1.5"></i>13 Truy Vấn & View
+                    </a>
+                </div>
+
+                <!-- DB Status Badge -->
+                <div class="flex items-center space-x-2">
+                    {% if db_ok %}
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" title="{{ db_msg }}">
+                        <span class="w-2 h-2 mr-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                        MySQL Connected
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20" title="{{ db_msg }}">
+                        <span class="w-2 h-2 mr-1.5 bg-rose-500 rounded-full"></span>
+                        DB Disconnected
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <!-- DB Alert if disconnected -->
+        {% if not db_ok %}
+        <div class="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 flex items-start space-x-3 shadow-sm">
+            <i class="fa-solid fa-triangle-exclamation text-amber-500 text-xl mt-0.5"></i>
+            <div>
+                <h4 class="font-bold text-sm">Chưa kết nối được MySQL Server!</h4>
+                <p class="text-xs mt-1 text-amber-700">Chi tiết lỗi: <code>{{ db_msg }}</code></p>
+                <p class="text-xs mt-2 text-slate-600">Vui lòng kiểm tra dịch vụ MySQL trên máy hoặc cập nhật mật khẩu trong file <code>config.py</code> hoặc <code>.env</code>.</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="space-y-3 mb-6">
+                    {% for category, message in messages %}
+                        <div class="p-4 rounded-xl text-sm font-medium flex items-center justify-between shadow-sm transition-all
+                            {% if category == 'success' %}bg-emerald-50 text-emerald-800 border border-emerald-200
+                            {% elif category == 'danger' %}bg-rose-50 text-rose-800 border border-rose-200
+                            {% elif category == 'warning' %}bg-amber-50 text-amber-800 border border-amber-200
+                            {% else %}bg-sky-50 text-sky-800 border border-sky-200{% endif %}">
+                            <div class="flex items-center space-x-2">
+                                <i class="{% if category == 'success' %}fa-solid fa-circle-check text-emerald-600
+                                          {% elif category == 'danger' %}fa-solid fa-circle-xmark text-rose-600
+                                          {% else %}fa-solid fa-circle-info text-sky-600{% endif %}"></i>
+                                <span>{{ message }}</span>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-6 mt-12 text-center text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center space-y-2 sm:space-y-0">
+            <div>
+                <strong>Đồ án môn Cơ sở dữ liệu</strong> — Học viện Công nghệ Bưu chính Viễn thông cơ sở TP.HCM (PTITHCM)
+            </div>
+            <div>
+                <span>Giảng viên hướng dẫn: <strong>Lê Hà Thành</strong></span> | 
+                <span>Group 01 (Lê Tuấn Anh, Đỗ Huy Ba, Châu Gia Bảo)</span>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

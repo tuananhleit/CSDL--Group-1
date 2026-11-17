@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Hóa Đơn & Sổ Cái Ví{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Hóa Đơn & Sổ Cái Ví Điện Tử</h1>
+            <p class="text-xs sm:text-sm text-slate-500 mt-1">
+                Thanh toán hóa đơn bằng Stored Procedures giao dịch ACID: <code>sp_thanh_toan_hoa_don_vi</code> (trừ ví, ghi sổ cái) và <code>sp_thanh_toan_walkin_ngoai</code> (QR/POS cho khách vãng lai).
+            </p>
+        </div>
+    </div>
+
+    <!-- Invoices Table -->
+    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+        <h3 class="font-bold text-slate-900 text-base mb-4 flex items-center justify-between">
+            <span class="flex items-center"><i class="fa-solid fa-receipt text-blue-600 mr-2"></i>Danh Sách Hóa Đơn (HOA_DON)</span>
+            <span class="text-xs text-slate-400">TongTien được tự động tính bằng Cột Sinh STORED</span>
+        </h3>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 text-slate-500 uppercase tracking-wider border-b border-slate-200">
+                    <tr>
+                        <th class="py-3 px-3">Mã HĐ</th>
+                        <th class="py-3 px-3">Phiên / Xe</th>
+                        <th class="py-3 px-3">Khách Hàng</th>
+                        <th class="py-3 px-3 text-right">Phí Đỗ</th>
+                        <th class="py-3 px-3 text-right">Phí Sạc</th>
+                        <th class="py-3 px-3 text-right">Đỗ Sau Sạc</th>
+                        <th class="py-3 px-3 text-right">Khấu Trừ</th>
+                        <th class="py-3 px-3 text-right">Tổng Tiền</th>
+                        <th class="py-3 px-3">Phương Thức</th>
+                        <th class="py-3 px-3">Trạng Thái</th>
+                        <th class="py-3 px-3 text-center">Thanh Toán</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for h in invoices %}
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="py-3 px-3 font-mono font-bold text-slate-900">{{ h.MaHD }}</td>
+                        <td class="py-3 px-3">
+                            <span class="font-mono font-semibold text-slate-800">{{ h.BienSo }}</span>
+                            <div class="text-slate-400 text-[11px]">Phiên: {{ h.MaPhien }}</div>
+                        </td>
+                        <td class="py-3 px-3">
+                            <div class="font-medium text-slate-700">{{ h.TenKhach }}</div>
+                            <div class="text-slate-400 text-[11px] font-mono">{{ h.MaKH }}</div>
+                        </td>
+                        <td class="py-3 px-3 text-right text-slate-600">{{ "{:,.0f}".format(h.PhiDoXe) }}đ</td>
+                        <td class="py-3 px-3 text-right text-slate-600">{{ "{:,.0f}".format(h.PhiSacDien) }}đ</td>
+                        <td class="py-3 px-3 text-right text-slate-600">{{ "{:,.0f}".format(h.PhiDoSauSac) }}đ</td>
+                        <td class="py-3 px-3 text-right text-emerald-600 font-semibold">-{{ "{:,.0f}".format(h.TienKhauTru) }}đ</td>
+                        <td class="py-3 px-3 text-right font-bold text-slate-900 text-sm">{{ "{:,.0f}".format(h.TongTien) }}đ</td>
+                        <td class="py-3 px-3 text-slate-600">{{ h.PhuongThucThanhToan }}</td>
+                        <td class="py-3 px-3">
+                            {% if h.TrangThaiThanhToan == 'Paid' %}
+                            <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">Paid</span>
+                            {% elif h.TrangThaiThanhToan == 'Unpaid' %}
+                            <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">Unpaid</span>
+                            {% else %}
+                            <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">{{ h.TrangThaiThanhToan }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-3 text-center">
+                            {% if h.TrangThaiThanhToan == 'Unpaid' %}
+                            <div class="flex items-center justify-center space-x-1">
+                                <!-- Thanh toan Vi -->
+                                <form method="POST" action="{{ url_for('billing.pay_by_wallet', id=h.MaHD) }}" onsubmit="return confirm('Xác nhận thanh toán hóa đơn {{ h.MaHD }} bằng ví của khách {{ h.MaKH }}?')">
+                                    <input type="hidden" name="ma_kh" value="{{ h.MaKH }}">
+                                    <button type="submit" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[11px] font-semibold transition-colors" title="Thanh toán qua ví">
+                                        Ví
+                                    </button>
+                                </form>
+                                <!-- Thanh toan Direct QR -->
+                                <form method="POST" action="{{ url_for('billing.pay_walkin', id=h.MaHD) }}" onsubmit="return confirm('Xác nhận thanh toán hóa đơn {{ h.MaHD }} qua Dynamic QR?')">
+                                    <input type="hidden" name="phuong_thuc" value="Dynamic_QR">
+                                    <button type="submit" class="px-2 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded text-[11px] font-semibold transition-colors" title="Thanh toán Dynamic QR">
+                                        QR
+                                    </button>
+                                </form>
+                            </div>
+                            {% else %}
+                            <span class="text-xs text-slate-400">{{ h.NgayThanhToan }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="11" class="py-8 text-center text-slate-400">Chưa có hóa đơn</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Wallet Ledger Table (Append-Only) -->
+    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+        <h3 class="font-bold text-slate-900 text-base mb-4 flex items-center justify-between">
+            <span class="flex items-center"><i class="fa-solid fa-book-journal-whills text-purple-600 mr-2"></i>Sổ Cái Giao Dịch Ví Bất Biến (GIAO_DICH_VI - Append-Only)</span>
+            <span class="text-xs text-purple-700 font-semibold px-2.5 py-0.5 bg-purple-50 rounded-full border border-purple-200">
+                Trigger cấm UPDATE & DELETE
+            </span>
+        </h3>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 text-slate-500 uppercase tracking-wider border-b border-slate-200">
+                    <tr>
+                        <th class="py-3 px-3">Mã GD</th>
+                        <th class="py-3 px-3">Khách Hàng</th>
+                        <th class="py-3 px-3">Loại GD</th>
+                        <th class="py-3 px-3 text-right">Số Tiền</th>
+                        <th class="py-3 px-3 text-right">Số Dư Trước</th>
+                        <th class="py-3 px-3 text-right">Số Dư Sau</th>
+                        <th class="py-3 px-3">Thời Gian</th>
+                        <th class="py-3 px-3">Ghi Chú</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 font-mono">
+                    {% for g in transactions %}
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="py-2.5 px-3 font-bold text-slate-900">{{ g.MaGD }}</td>
+                        <td class="py-2.5 px-3 font-sans">{{ g.HoTen }} ({{ g.MaKH }})</td>
+                        <td class="py-2.5 px-3 font-sans">
+                            {% if g.LoaiGD == 'Deposit' %}
+                            <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800">Deposit</span>
+                            {% elif g.LoaiGD == 'Payment' %}
+                            <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-rose-100 text-rose-800">Payment</span>
+                            {% elif g.LoaiGD == 'DirectPayment' %}
+                            <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 text-blue-800">DirectPayment</span>
+                            {% else %}
+                            <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-purple-100 text-purple-800">{{ g.LoaiGD }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-2.5 px-3 text-right font-bold text-slate-900">{{ "{:,.0f}".format(g.SoTien) }}đ</td>
+                        <td class="py-2.5 px-3 text-right text-slate-500">{{ "{:,.0f}".format(g.SoDuTruoc) }}đ</td>
+                        <td class="py-2.5 px-3 text-right font-semibold text-emerald-600">{{ "{:,.0f}".format(g.SoDuSau) }}đ</td>
+                        <td class="py-2.5 px-3 text-slate-500 text-[11px] font-sans">{{ g.ThoiGianGD }}</td>
+                        <td class="py-2.5 px-3 text-slate-600 font-sans text-xs truncate max-w-xs">{{ g.GhiChu }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="py-8 text-center text-slate-400 font-sans">Chưa có giao dịch sổ cái</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

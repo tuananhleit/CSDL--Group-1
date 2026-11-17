@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Trạm & Chỗ Đỗ Trống{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Tra Cứu Trạm & Ô Đỗ Còn Trống</h1>
+            <p class="text-xs sm:text-sm text-slate-500 mt-1">
+                Dữ liệu thời gian thực được tổng hợp từ View <code>VW_CHO_DO_TRONG</code> trong cơ sở dữ liệu.
+            </p>
+        </div>
+
+        <!-- Filter Form -->
+        <form method="GET" action="{{ url_for('stations.list_stations') }}" class="flex items-center space-x-2">
+            <select name="tram" onchange="this.form.submit()" class="px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <option value="">-- Tất cả các trạm --</option>
+                {% for t in stations %}
+                <option value="{{ t.MaTram }}" {% if selected_tram == t.MaTram %}selected{% endif %}>
+                    {{ t.TenTram }} ({{ t.MaTram }})
+                </option>
+                {% endfor %}
+            </select>
+            {% if selected_tram %}
+            <a href="{{ url_for('stations.list_stations') }}" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-semibold">
+                Xóa lọc
+            </a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Stations Overview Badges -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for t in stations %}
+        <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm hover:border-emerald-500/50 transition-colors">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-mono font-semibold px-2 py-0.5 bg-slate-100 rounded text-slate-600">{{ t.MaTram }}</span>
+                <span class="text-xs text-emerald-600 font-semibold"><i class="fa-solid fa-clock mr-1"></i>Ân hạn: {{ t.PhutAnHanSauSac }}p</span>
+            </div>
+            <h3 class="font-bold text-slate-900 text-sm mt-2">{{ t.TenTram }}</h3>
+            <p class="text-xs text-slate-500 mt-1 truncate" title="{{ t.DiaChi }}"><i class="fa-solid fa-location-dot mr-1"></i>{{ t.DiaChi }}</p>
+            <div class="mt-3 pt-3 border-t border-slate-100 text-xs text-slate-600 flex justify-between">
+                <span>Số dư tối thiểu:</span>
+                <span class="font-semibold text-slate-800">{{ "{:,.0f}".format(t.SoDuToiThieu) }}đ</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Slots Grid (VW_CHO_DO_TRONG) -->
+    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="font-bold text-slate-900 text-base flex items-center">
+                <i class="fa-solid fa-square-parking text-emerald-600 mr-2"></i>Danh Sách Ô Đỗ Sẵn Sàng Nhận Xe ({{ available_slots|length }} ô)
+            </h2>
+            <div class="flex items-center space-x-3 text-xs text-slate-500">
+                <span class="flex items-center"><span class="w-3 h-3 rounded-full bg-emerald-500 mr-1.5"></span>Sẵn sàng sạc</span>
+                <span class="flex items-center"><span class="w-3 h-3 rounded-full bg-slate-400 mr-1.5"></span>Chỉ đỗ xe</span>
+            </div>
+        </div>
+
+        {% if available_slots %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {% for s in available_slots %}
+            <div class="p-4 rounded-xl border border-slate-200 hover:shadow-md transition-shadow relative overflow-hidden
+                {% if s.TinhTrangSac == 'San sang sac' %}bg-gradient-to-b from-white to-emerald-50/30 border-emerald-200
+                {% else %}bg-gradient-to-b from-white to-slate-50 border-slate-200{% endif %}">
+                <div class="flex items-center justify-between">
+                    <span class="font-mono font-bold text-base text-slate-900">{{ s.MaViTri }}</span>
+                    <span class="px-2 py-0.5 rounded-full text-xs font-semibold
+                        {% if s.LoaiCho == 'CarSlot' %}bg-blue-100 text-blue-700
+                        {% else %}bg-purple-100 text-purple-700{% endif %}">
+                        {{ 'Ô tô 4W' if s.LoaiCho == 'CarSlot' else 'Xe máy 2W' }}
+                    </span>
+                </div>
+                <div class="text-xs text-slate-500 mt-1 truncate">{{ s.TenTram }}</div>
+
+                <div class="mt-3 pt-3 border-t border-slate-100/80 space-y-1.5 text-xs">
+                    {% if s.MaTru %}
+                    <div class="flex justify-between items-center text-slate-700 font-medium">
+                        <span><i class="fa-solid fa-bolt text-emerald-500 mr-1"></i>Trụ: {{ s.MaTru }}</span>
+                        <span class="font-bold text-emerald-600">{{ s.CongSuat_kW }} kW</span>
+                    </div>
+                    <div class="text-slate-500 flex justify-between">
+                        <span>Chuẩn: {{ s.ChuanKetNoi }}</span>
+                        <span class="text-emerald-700 font-semibold">{{ s.TinhTrangSac }}</span>
+                    </div>
+                    {% else %}
+                    <div class="text-slate-400 italic py-1">
+                        <i class="fa-solid fa-ban mr-1 text-slate-300"></i>Không có trụ sạc (Chỉ đỗ)
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="mt-3 pt-2">
+                    <a href="{{ url_for('bookings.list_bookings') }}" class="block text-center w-full py-1.5 bg-slate-900 hover:bg-emerald-600 text-white rounded-lg text-xs font-semibold transition-colors">
+                        Đặt Ô Này
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-12 text-slate-400">
+            <i class="fa-solid fa-parking text-4xl mb-3 text-slate-300"></i>
+            <p>Không có ô đỗ trống nào phù hợp với bộ lọc hiện tại.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
