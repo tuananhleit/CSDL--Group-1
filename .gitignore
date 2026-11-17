@@ -1,0 +1,32 @@
+# Environment Variables & Secrets
+.env
+*.env
+!.env.example
+
+# Virtual Environment
+.venv/
+venv/
+env/
+ENV/
+
+# Operating System & Editor Files
+.DS_Store
+Thumbs.db
+*.tmp
+*.bak
+*.swp
+*~
+
+# IDE configurations
+.idea/
+.vscode/
+*.suo
+*.user
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Archive of historical drafts (Postgres drafts, old Word/Markdown notes)
+archive/
