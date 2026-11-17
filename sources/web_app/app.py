@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, session
 import os
 import sys
 
@@ -10,6 +10,12 @@ from config import Config
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+
+    @app.context_processor
+    def inject_global_role():
+        return {
+            "current_role": session.get("role", "customer")
+        }
 
     from routes.main import main_bp
     from routes.stations import stations_bp

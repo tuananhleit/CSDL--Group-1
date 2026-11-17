@@ -18,9 +18,15 @@
                 <a href="{{ url_for('stations.list_stations') }}" class="inline-flex items-center px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-emerald-500/20">
                     <i class="fa-solid fa-magnifying-glass mr-2"></i>Tra cứu Chỗ đỗ trống
                 </a>
+                {% if current_role == 'admin' %}
                 <a href="{{ url_for('queries.queries_page') }}" class="inline-flex items-center px-4 py-2 bg-slate-800/80 hover:bg-slate-700 text-white rounded-xl text-sm font-semibold border border-slate-700 transition-all">
                     <i class="fa-solid fa-terminal mr-2 text-emerald-400"></i>13 Truy vấn Đối soát
                 </a>
+                {% else %}
+                <a href="{{ url_for('bookings.list_bookings') }}" class="inline-flex items-center px-4 py-2 bg-slate-800/80 hover:bg-slate-700 text-white rounded-xl text-sm font-semibold border border-slate-700 transition-all">
+                    <i class="fa-solid fa-calendar-check mr-2 text-emerald-400"></i>Đặt Chỗ Trước Ngay
+                </a>
+                {% endif %}
             </div>
         </div>
         <div class="absolute right-0 top-0 bottom-0 w-1/3 opacity-10 flex items-center justify-center pointer-events-none">
@@ -78,23 +84,38 @@
             <div class="text-xs text-slate-400 mt-1">Sạc & đỗ thời gian thực</div>
         </div>
 
-        <!-- Doanh thu -->
-        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
+        {% if current_role == 'admin' %}
+        <!-- Doanh thu chi hien thi cho Quan Tri Vien (Bao mat thong tin noi bo) -->
+        <div class="bg-white rounded-2xl p-5 border border-purple-200/80 shadow-sm hover:shadow-md transition-shadow bg-gradient-to-b from-white to-purple-50/20">
             <div class="flex items-center justify-between text-slate-500 mb-2">
-                <span class="text-xs font-semibold uppercase tracking-wider">Doanh Thu Thu</span>
-                <div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
+                <span class="text-xs font-semibold uppercase tracking-wider text-purple-700">Doanh Thu Thu</span>
+                <div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center">
                     <i class="fa-solid fa-coins text-sm"></i>
                 </div>
             </div>
-            <div class="text-xl font-bold text-purple-600">{{ "{:,.0f}".format(stats.paid_revenue) }}đ</div>
-            <div class="text-xs text-slate-400 mt-1">Hóa đơn đã thanh toán</div>
+            <div class="text-xl font-bold text-purple-700">{{ "{:,.0f}".format(stats.paid_revenue) }}đ</div>
+            <div class="text-xs text-purple-500/80 mt-1">Hóa đơn đã thanh toán (Nội bộ)</div>
         </div>
+        {% else %}
+        <!-- Khach hang / Tai xe: Hien thi Tru sac san sang, KHONG hien thi doanh thu noi bo -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between text-slate-500 mb-2">
+                <span class="text-xs font-semibold uppercase tracking-wider">Trụ Sạc Sẵn Sàng</span>
+                <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <i class="fa-solid fa-plug-circle-check text-sm"></i>
+                </div>
+            </div>
+            <div class="text-2xl font-bold text-emerald-600">{{ stats.available_chargers }} Trụ</div>
+            <div class="text-xs text-slate-400 mt-1">Cổng sạc sẵn sàng tiếp điện</div>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Quick Features & Recent Sessions Section -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Highlights & Procedures -->
         <div class="lg:col-span-1 space-y-4">
+            {% if current_role == 'admin' %}
             <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
                 <h3 class="font-bold text-slate-900 text-base mb-3 flex items-center">
                     <i class="fa-solid fa-shield-halved text-emerald-600 mr-2"></i>Điểm Nhấn Kỹ Thuật (Group 01)
@@ -122,6 +143,35 @@
                     </li>
                 </ul>
             </div>
+            {% else %}
+            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                <h3 class="font-bold text-slate-900 text-base mb-3 flex items-center">
+                    <i class="fa-solid fa-star text-amber-500 mr-2"></i>Tiện Ích Cho Tài Xế EV
+                </h3>
+                <ul class="space-y-3 text-xs text-slate-600">
+                    <li class="flex items-start space-x-2">
+                        <i class="fa-solid fa-circle-check text-emerald-500 mt-0.5"></i>
+                        <span><strong>Hỗ trợ đa phương tiện:</strong> Dành cho cả Ô tô điện 4W (chuẩn CCS2, Type 2) và Xe máy điện 2W.</span>
+                    </li>
+                    <li class="flex items-start space-x-2">
+                        <i class="fa-solid fa-circle-check text-emerald-500 mt-0.5"></i>
+                        <span><strong>Đặt chỗ trước 30 phút:</strong> Đảm bảo có ô đỗ và cổng sạc chờ sẵn khi bạn di chuyển tới trạm.</span>
+                    </li>
+                    <li class="flex items-start space-x-2">
+                        <i class="fa-solid fa-circle-check text-emerald-500 mt-0.5"></i>
+                        <span><strong>Ngắt sạc tự động thông minh:</strong> Tự động ngắt điện khi pin đạt 80% hoặc chạm hạn mức ví để bảo vệ pin.</span>
+                    </li>
+                    <li class="flex items-start space-x-2">
+                        <i class="fa-solid fa-circle-check text-emerald-500 mt-0.5"></i>
+                        <span><strong>Miễn phí ân hạn 15 phút:</strong> Thoải mái rút sạc và rời bãi đỗ mà không lo bị tính phí phạt quá giờ.</span>
+                    </li>
+                    <li class="flex items-start space-x-2">
+                        <i class="fa-solid fa-circle-check text-emerald-500 mt-0.5"></i>
+                        <span><strong>Thanh toán tiện lợi:</strong> Tự động trừ qua Ví điện tử hoặc quét Dynamic QR cho khách vãng lai.</span>
+                    </li>
+                </ul>
+            </div>
+            {% endif %}
 
             <!-- Quick Navigation Box -->
             <div class="bg-slate-900 text-white rounded-2xl p-6 shadow-sm">
@@ -139,10 +189,17 @@
                         <i class="fa-solid fa-credit-card text-lg text-blue-400 mb-1"></i>
                         <span>Thanh toán ví</span>
                     </a>
+                    {% if current_role == 'admin' %}
                     <a href="{{ url_for('queries.queries_page') }}" class="p-3 bg-slate-800 hover:bg-slate-700 rounded-xl flex flex-col items-center justify-center text-center transition-colors">
                         <i class="fa-solid fa-magnifying-glass-chart text-lg text-purple-400 mb-1"></i>
                         <span>Chạy 13 Query</span>
                     </a>
+                    {% else %}
+                    <a href="{{ url_for('stations.list_stations') }}" class="p-3 bg-slate-800 hover:bg-slate-700 rounded-xl flex flex-col items-center justify-center text-center transition-colors">
+                        <i class="fa-solid fa-map-location-dot text-lg text-emerald-400 mb-1"></i>
+                        <span>Tìm trạm sạc</span>
+                    </a>
+                    {% endif %}
                 </div>
             </div>
         </div>

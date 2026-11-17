@@ -1,16 +1,26 @@
-from flask import Blueprint, render_template, current_app
+from flask import Blueprint, render_template, current_app, session, redirect, request, url_for
 from db import test_connection, query_one, query_all
 
 main_bp = Blueprint("main", __name__)
 
+@main_bp.route("/switch-role/<role>")
+def switch_role(role):
+    """Chuyển đổi vai trò: 'customer' (Khách hàng) hoặc 'admin' (Quản trị viên)"""
+    if role in ["customer", "admin"]:
+        session["role"] = role
+    referrer = request.referrer
+    return redirect(referrer if referrer else url_for("main.dashboard"))
+
 @main_bp.route("/")
 def dashboard():
     db_ok, db_msg = test_connection()
+    current_role = session.get("role", "customer")
     stats = {
         "total_customers": 0,
         "total_stations": 0,
         "available_slots": 0,
         "active_sessions": 0,
+        "available_chargers": 0,
         "paid_revenue": 0,
         "recent_sessions": []
     }
@@ -29,8 +39,16 @@ def dashboard():
             phien = query_one("SELECT COUNT(*) AS total FROM PHIEN WHERE TrangThaiPhien = 'Active'")
             stats["active_sessions"] = phien["total"] if phien else 0
 
-            dt = query_one("SELECT COALESCE(SUM(TongTien), 0) AS total FROM HOA_DON WHERE TrangThaiThanhToan = 'Paid'")
-            stats["paid_revenue"] = dt["total"] if dt else 0
+            # So luong tru sac san sang sac cho khach hang
+            tru = query_one("SELECT COUNT(*) AS total FROM TRU_SAC WHERE TrangThaiTru = 'Available'")
+            stats["available_chargers"] = tru["total"] if tru else 0
+
+            # Doanh thu chi duoc truy van cho Admin (Bao mat thong tin noi bo)
+            if current_role == "admin":
+                dt = query_one("SELECT COALESCE(SUM(TongTien), 0) AS total FROM HOA_DON WHERE TrangThaiThanhToan = 'Paid'")
+                stats["paid_revenue"] = dt["total"] if dt else 0
+            else:
+                stats["paid_revenue"] = 0
 
             stats["recent_sessions"] = query_all("""
                 SELECT p.MaPhien, pt.BienSo, t.TenTram, c.MaViTri, p.LoaiPhien, p.TrangThaiPhien, p.ThoiGianVao
@@ -44,4 +62,4 @@ def dashboard():
         except Exception as e:
             db_msg = f"Lỗi truy vấn: {str(e)}"
             
-    return render_template("dashboard.html", db_ok=db_ok, db_msg=db_msg, stats=stats)
+    return render_template("dashboard.html", db_ok=db_ok, db_msg=db_msg, stats=stats, current_role=current_role)
