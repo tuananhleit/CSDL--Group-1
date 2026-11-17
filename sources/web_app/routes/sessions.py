@@ -170,10 +170,11 @@ def complete_session(id):
                     tien_khau_tru = min(float(dc["TienCoc"]), phi_do + phi_sac + phi_sau_sac)
 
             ma_hd = f"HD{int(now.timestamp())}"
+            ngay_lap = (now - datetime.timedelta(seconds=2)).replace(microsecond=0)
             execute_statement("""
                 INSERT INTO HOA_DON (MaHD, MaPhien, PhiDoXe, PhiSacDien, PhiDoSauSac, TienKhauTru, PhuongThucThanhToan, TrangThaiThanhToan, NgayLapHoaDon)
                 VALUES (%s, %s, %s, %s, %s, %s, 'Wallet', 'Unpaid', %s)
-            """, (ma_hd, id, phi_do, phi_sac, phi_sau_sac, tien_khau_tru, now))
+            """, (ma_hd, id, phi_do, phi_sac, phi_sau_sac, tien_khau_tru, ngay_lap))
 
             flash(f"Phiên {id} đã hoàn tất! Hóa đơn {ma_hd} đã được lập (Đã khấu trừ cọc {tien_khau_tru:,.0f}đ). Bạn có thể thanh toán tại mục Hóa Đơn & Ví.", "success")
         else:

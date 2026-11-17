@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request
 from db import test_connection, query_all
+from security import admin_required
 import time
 
 queries_bp = Blueprint("queries", __name__)
@@ -202,6 +203,7 @@ WHERE hd.TrangThaiThanhToan IN ('Paid', 'Refunded')
 }
 
 @queries_bp.route("/queries")
+@admin_required
 def queries_page():
     db_ok, db_msg = test_connection()
     selected_key = request.args.get("q", "Q1")

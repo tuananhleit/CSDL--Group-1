@@ -14,9 +14,13 @@ def create_app():
     @app.context_processor
     def inject_global_role():
         return {
-            "current_role": session.get("role", "customer")
+            "current_role": session.get("role", "customer"),
+            "is_logged_in": session.get("logged_in", False),
+            "current_user_id": session.get("user_id", "KH01"),
+            "current_user_name": session.get("user_name", "Nguyễn Minh Khoa")
         }
 
+    from routes.auth import auth_bp
     from routes.main import main_bp
     from routes.stations import stations_bp
     from routes.bookings import bookings_bp
@@ -24,6 +28,7 @@ def create_app():
     from routes.billing import billing_bp
     from routes.queries import queries_bp
 
+    app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
     app.register_blueprint(stations_bp)
     app.register_blueprint(bookings_bp)

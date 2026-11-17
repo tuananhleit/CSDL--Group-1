@@ -65,8 +65,30 @@
                     {% endif %}
                 </div>
 
-                <!-- Role Switcher & DB Status Badge -->
+                <!-- User Status, Role Switcher & DB Status Badge -->
                 <div class="flex items-center space-x-2 sm:space-x-3">
+                    <!-- User Account / Auth Status -->
+                    {% if is_logged_in %}
+                    <div class="hidden lg:flex items-center space-x-2 text-xs">
+                        {% if current_role == 'admin' %}
+                        <span class="px-2.5 py-1 bg-purple-600/20 text-purple-300 border border-purple-500/30 rounded-lg font-medium flex items-center">
+                            <i class="fa-solid fa-user-shield text-purple-400 mr-1.5"></i>{{ current_user_name }}
+                        </span>
+                        {% else %}
+                        <span class="px-2.5 py-1 bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 rounded-lg font-medium flex items-center">
+                            <i class="fa-solid fa-user text-emerald-400 mr-1.5"></i>{{ current_user_name }} ({{ current_user_id }})
+                        </span>
+                        {% endif %}
+                        <a href="{{ url_for('auth.logout') }}" class="px-2 py-1 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors" title="Đăng xuất khỏi hệ thống">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                        </a>
+                    </div>
+                    {% else %}
+                    <a href="{{ url_for('auth.login_page') }}" class="px-2.5 sm:px-3 py-1 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 text-white font-semibold rounded-lg text-xs shadow-sm transition-all flex items-center">
+                        <i class="fa-solid fa-right-to-bracket mr-1.5"></i><span>Đăng Nhập</span>
+                    </a>
+                    {% endif %}
+
                     <!-- Role Switcher Pill -->
                     <div class="flex items-center bg-slate-800/90 rounded-xl p-0.5 border border-slate-700 text-xs">
                         {% if current_role == 'admin' %}
@@ -80,7 +102,7 @@
                         <span class="px-2 sm:px-2.5 py-1 bg-emerald-500 text-white font-semibold rounded-lg shadow-sm flex items-center">
                             <i class="fa-solid fa-car mr-1"></i><span class="hidden sm:inline">Khách Hàng</span>
                         </span>
-                        <a href="{{ url_for('main.switch_role', role='admin') }}" class="px-2 sm:px-2.5 py-1 text-slate-400 hover:text-white rounded-lg transition-colors" title="Chuyển sang giao diện Quản trị viên (Hệ thống)">
+                        <a href="{{ url_for('auth.login_page', role='admin') }}" class="px-2 sm:px-2.5 py-1 text-slate-400 hover:text-purple-300 rounded-lg transition-colors" title="Đăng nhập tài khoản Quản trị viên (Admin) để nâng quyền">
                             <i class="fa-solid fa-shield-halved mr-1"></i><span class="hidden sm:inline">Quản Trị</span>
                         </a>
                         {% endif %}

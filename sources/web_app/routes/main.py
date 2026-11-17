@@ -1,13 +1,23 @@
-from flask import Blueprint, render_template, current_app, session, redirect, request, url_for
+from flask import Blueprint, render_template, current_app, session, redirect, request, url_for, flash
 from db import test_connection, query_one, query_all
 
 main_bp = Blueprint("main", __name__)
 
 @main_bp.route("/switch-role/<role>")
 def switch_role(role):
-    """Chuyển đổi vai trò: 'customer' (Khách hàng) hoặc 'admin' (Quản trị viên)"""
-    if role in ["customer", "admin"]:
-        session["role"] = role
+    """
+    Chuyển đổi vai trò an toàn:
+    - Chuyển sang Admin: BẮT BUỘC phải đăng nhập mật khẩu qua cổng bảo mật /login (Chống Leo Thang Đặc Quyền - Privilege Escalation).
+    - Chuyển sang Khách Hàng: Cho phép Quản trị viên chuyển về giao diện trải nghiệm người dùng.
+    """
+    if role == "admin":
+        if session.get("role") != "admin":
+            flash("Khu vực bảo vệ: Vui lòng nhập tài khoản Quản trị viên (Admin) để kích hoạt quyền quản trị!", "warning")
+            return redirect(url_for("auth.login_page", role="admin", next=request.referrer or url_for("main.dashboard")))
+    elif role == "customer":
+        session["role"] = "customer"
+        flash("Đã chuyển sang chế độ Khách Hàng (Tài xế EV).", "info")
+
     referrer = request.referrer
     return redirect(referrer if referrer else url_for("main.dashboard"))
 
