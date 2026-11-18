@@ -94,24 +94,17 @@
                     </div>
                     {% endif %}
 
-                    <!-- Role Switcher Pill -->
-                    <div class="flex items-center bg-slate-800/90 rounded-xl p-0.5 border border-slate-700 text-xs">
-                        {% if current_role == 'admin' %}
-                        <a href="{{ url_for('main.switch_role', role='customer') }}" class="px-2 sm:px-2.5 py-1 text-slate-400 hover:text-white rounded-lg transition-colors" title="Chuyển sang giao diện Khách hàng (Tài xế)">
-                            <i class="fa-solid fa-car mr-1"></i><span class="hidden sm:inline">Khách</span>
-                        </a>
-                        <span class="px-2 sm:px-2.5 py-1 bg-purple-600 text-white font-semibold rounded-lg shadow-sm flex items-center">
+                    <!-- Role Status / Admin Mode -->
+                    {% if current_role == 'admin' %}
+                    <div class="flex items-center bg-slate-800/90 rounded-xl p-0.5 border border-purple-500/40 text-xs">
+                        <span class="px-2.5 py-1 bg-purple-600 text-white font-semibold rounded-lg shadow-sm flex items-center">
                             <i class="fa-solid fa-shield-halved mr-1"></i><span class="hidden sm:inline">Quản Trị</span>
                         </span>
-                        {% else %}
-                        <span class="px-2 sm:px-2.5 py-1 bg-emerald-500 text-white font-semibold rounded-lg shadow-sm flex items-center">
-                            <i class="fa-solid fa-car mr-1"></i><span class="hidden sm:inline">Khách Hàng</span>
-                        </span>
-                        <a href="{{ url_for('auth.login_page', role='admin') }}" class="px-2 sm:px-2.5 py-1 text-slate-400 hover:text-purple-300 rounded-lg transition-colors" title="Đăng nhập tài khoản Quản trị viên (Admin) để nâng quyền">
-                            <i class="fa-solid fa-shield-halved mr-1"></i><span class="hidden sm:inline">Quản Trị</span>
+                        <a href="{{ url_for('main.switch_role', role='customer') }}" class="px-2 sm:px-2.5 py-1 text-slate-300 hover:text-white rounded-lg transition-colors" title="Chuyển sang giao diện Khách hàng (Tài xế)">
+                            <i class="fa-solid fa-car mr-1 text-emerald-400"></i><span class="hidden sm:inline">Xem Khách</span>
                         </a>
-                        {% endif %}
                     </div>
+                    {% endif %}
 
                     <!-- DB Status Badge -->
                     {% if db_ok %}
@@ -177,9 +170,12 @@
             <div>
                 <strong>Đồ án môn Cơ sở dữ liệu</strong> — Học viện Công nghệ Bưu chính Viễn thông cơ sở TP.HCM (PTITHCM)
             </div>
-            <div>
+            <div class="flex items-center space-x-3">
                 <span>Giảng viên hướng dẫn: <strong>Lê Hà Thành</strong></span> | 
-                <span>Group 01 (Lê Tuấn Anh, Đỗ Huy Ba, Châu Gia Bảo)</span>
+                <span>Group 01 (Lê Tuấn Anh, Đỗ Huy Ba, Châu Gia Bảo)</span> |
+                <a href="{{ url_for('auth.admin_login_page') }}" class="text-slate-400 hover:text-purple-600 transition-colors inline-flex items-center" title="Dành riêng cho nhân sự quản trị & vận hành">
+                    <i class="fa-solid fa-lock text-[10px] mr-1"></i>Admin Portal
+                </a>
             </div>
         </div>
     </footer>

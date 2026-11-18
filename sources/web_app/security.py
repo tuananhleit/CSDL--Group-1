@@ -58,8 +58,8 @@ def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if session.get("role") != "admin":
-            flash("Cảnh báo bảo mật (403 Forbidden): Khu vực chỉ dành cho Quản trị viên (Admin). Mọi hành vi leo thang đặc quyền trái phép đều bị ghi nhận.", "danger")
-            return redirect(url_for("auth.login_page", role="admin", next=request.path))
+            flash("Khu vực bảo vệ nội bộ: Vui lòng đăng nhập qua Cổng Quản Trị Viên (Admin Portal)!", "danger")
+            return redirect(url_for("auth.admin_login_page", next=request.path))
         return f(*args, **kwargs)
     return decorated_function
 

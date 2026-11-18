@@ -106,3 +106,24 @@ def format_db_error(e):
             return "Vị trí ô đỗ này hiện đang có xe khác đỗ. Vui lòng chọn ô đỗ khả dụng."
         return "Dữ liệu bị trùng lặp trong hệ thống (Duplicate Key)."
     return msg
+
+def init_app_tables():
+    """Tự động khởi tạo bảng hỗ trợ quy trình nạp tiền ví YEU_CAU_NAP_TIEN nếu chưa tồn tại"""
+    try:
+        execute_statement("""
+            CREATE TABLE IF NOT EXISTS YEU_CAU_NAP_TIEN (
+                MaYC VARCHAR(30) PRIMARY KEY,
+                MaKH VARCHAR(20) NOT NULL,
+                SoTien DECIMAL(12, 2) NOT NULL,
+                PhuongThuc VARCHAR(50) DEFAULT 'BankTransfer_VietQR',
+                MaThamChieu VARCHAR(50),
+                ThoiGianYeuCau DATETIME DEFAULT CURRENT_TIMESTAMP,
+                TrangThai VARCHAR(20) DEFAULT 'Pending',
+                NguoiDuyet VARCHAR(50) DEFAULT NULL,
+                ThoiGianDuyet DATETIME DEFAULT NULL,
+                GhiChu TEXT,
+                CONSTRAINT FK_YCNapTien_KhachHang FOREIGN KEY (MaKH) REFERENCES KHACH_HANG (MaKH)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        """)
+    except Exception as e:
+        pass

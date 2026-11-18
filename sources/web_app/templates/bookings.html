@@ -9,7 +9,7 @@
         <div>
             <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Quản Lý Đặt Chỗ Trước (DAT_CHO)</h1>
             <p class="text-xs sm:text-sm text-slate-500 mt-1">
-                Quy tắc nghiệp vụ: Mỗi xe và mỗi ô chỉ có tối đa 1 đặt chỗ Active. Đặt chỗ tự động chuyển ô sang <code>Reserved</code> và hoàn trả <code>Available</code> khi hủy.
+                Quy tắc nghiệp vụ: Mỗi xe và mỗi ô chỉ có tối đa 1 đặt chỗ Active. Hỗ trợ đặt chỗ cho chính xe của bạn hoặc <strong>Đặt chỗ giùm người khác</strong>.
             </p>
         </div>
     </div>
@@ -24,7 +24,7 @@
             <div>
                 <h3 class="text-base sm:text-lg font-bold text-slate-800">Đăng Nhập Để Đặt Chỗ Xe Điện</h3>
                 <p class="text-xs sm:text-sm text-slate-600 mt-1 max-w-xl">
-                    Vui lòng đăng nhập tài khoản tài xế hoặc đăng ký tài khoản mới để giữ trước ô đỗ và trụ sạc trong 30 phút. Ô đỗ sẽ được bảo lưu riêng cho biển số xe của bạn.
+                    Vui lòng đăng nhập tài khoản tài xế hoặc đăng ký tài khoản mới để giữ trước ô đỗ và trụ sạc trong 30 phút. Ô đỗ sẽ được bảo lưu riêng cho phương tiện của bạn hoặc xe được bạn đặt giùm.
                 </p>
             </div>
         </div>
@@ -39,59 +39,89 @@
     </div>
     {% else %}
     <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-        <h3 class="font-bold text-slate-900 text-base mb-4 flex items-center">
-            <i class="fa-solid fa-plus-circle text-emerald-600 mr-2"></i>Tạo Yêu Cầu Đặt Chỗ Mới
-        </h3>
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <h3 class="font-bold text-slate-900 text-base flex items-center">
+                <i class="fa-solid fa-plus-circle text-emerald-600 mr-2"></i>Tạo Yêu Cầu Đặt Chỗ Mới
+            </h3>
 
-        {% if current_role == 'customer' and not vehicles %}
-        <div class="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-center justify-between">
-            <div class="flex items-center space-x-2">
-                <i class="fa-solid fa-triangle-exclamation text-amber-600 text-base"></i>
-                <span>Tài khoản của bạn chưa có phương tiện nào được liên kết. Vui lòng tạo tài khoản mới kèm xe hoặc liên hệ quản trị viên.</span>
-            </div>
-        </div>
-        {% else %}
-        <form method="POST" action="{{ url_for('bookings.create_booking') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
-            <!-- Select Vehicle -->
-            <div class="lg:col-span-2">
-                <label class="block text-xs font-semibold text-slate-700 mb-1">Phương Tiện Của Bạn</label>
-                <select name="ma_xe" required class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-                    <option value="">-- Chọn xe muốn đặt --</option>
-                    {% for v in vehicles %}
-                    <option value="{{ v.MaXe }}" {% if v.IsMyVehicle %}selected class="font-bold text-emerald-700"{% endif %}>
-                        {% if v.IsMyVehicle %}⭐ [XE CỦA BẠN] {% endif %}{{ v.BienSo }} ({{ v.LoaiXe }}{% if v.ChuanSac %} - {{ v.ChuanSac }}{% endif %}) - {{ v.HoTen }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <!-- Select Slot -->
-            <div class="lg:col-span-2">
-                <label class="block text-xs font-semibold text-slate-700 mb-1">Ô Đỗ Khả Dụng (Chỉ Available)</label>
-                <select name="ma_cho" required class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-                    <option value="">-- Chọn ô đỗ trống --</option>
-                    {% for s in available_slots %}
-                    <option value="{{ s.MaCho }}">
-                        {{ s.TenTram }} - Ô {{ s.MaViTri }} ({{ s.LoaiCho }}) {% if s.MaTru %}[Trụ {{ s.MaTru }}: {{ s.ChuanKetNoi }} {{ s.CongSuat_kW }}kW]{% else %}[Chỉ đỗ xe]{% endif %}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <!-- Deposit & Submit -->
-            <div class="lg:col-span-1">
-                <button type="submit" class="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs sm:text-sm transition-colors shadow-sm flex items-center justify-center">
-                    <i class="fa-solid fa-calendar-plus mr-1.5"></i>Đặt Chỗ
+            <!-- Mode Selector: Xe của tôi vs Đặt chỗ giùm -->
+            {% if current_role == 'customer' %}
+            <div class="flex items-center space-x-2 bg-slate-100 p-1 rounded-xl text-xs font-semibold">
+                <button type="button" onclick="setBookingMode('my_vehicle')" id="btn-mode-my"
+                        class="px-3 py-1.5 rounded-lg bg-white text-emerald-700 shadow-sm transition-all flex items-center">
+                    <i class="fa-solid fa-car mr-1.5"></i>Xe Của Tôi
+                </button>
+                <button type="button" onclick="setBookingMode('other_vehicle')" id="btn-mode-other"
+                        class="px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition-all flex items-center">
+                    <i class="fa-solid fa-handshake-angle mr-1.5"></i>Đặt Chỗ Giùm Người Khác
                 </button>
             </div>
-            
+            {% endif %}
+        </div>
+
+        <form method="POST" action="{{ url_for('bookings.create_booking') }}" id="booking-form" class="space-y-4">
+            <input type="hidden" name="booking_mode" id="booking_mode" value="my_vehicle">
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+                <!-- Select My Vehicle -->
+                <div class="lg:col-span-2" id="box-my-vehicle">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Phương Tiện Của Bạn</label>
+                    <select name="ma_xe" id="select_my_xe" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        <option value="">-- Chọn xe của bạn --</option>
+                        {% for v in my_vehicles %}
+                        <option value="{{ v.MaXe }}" {% if loop.first %}selected{% endif %}>
+                            ⭐ {{ v.BienSo }} ({{ v.LoaiXe }}{% if v.ChuanSac %} - {{ v.ChuanSac }}{% endif %}) - {{ v.HoTen }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Select Other Vehicle (Đặt chỗ giùm) -->
+                <div class="lg:col-span-2 hidden" id="box-other-vehicle">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Xe Cần Đặt Giùm (Chọn hoặc nhập Biển số)</label>
+                    <div class="space-y-2">
+                        <select name="ma_xe_other" id="select_other_xe" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            <option value="">-- Chọn xe trong hệ thống để đặt giùm --</option>
+                            {% for v in other_vehicles %}
+                            <option value="{{ v.MaXe }}">
+                                {{ v.BienSo }} ({{ v.LoaiXe }}{% if v.ChuanSac %} - {{ v.ChuanSac }}{% endif %}) - Chủ xe: {{ v.HoTen }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <input type="text" name="bien_so_other" placeholder="Hoặc nhập Biển số xe muốn đặt giùm (ví dụ: 51K-123.45)..."
+                               class="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs placeholder-slate-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- Select Slot -->
+                <div class="lg:col-span-2">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Vị Trí Ô Đỗ Khả Dụng (Chỉ Available)</label>
+                    <select name="ma_cho" required class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        <option value="">-- Chọn ô đỗ trống --</option>
+                        {% for s in available_slots %}
+                        <option value="{{ s.MaCho }}">
+                            {{ s.TenTram }} - Ô {{ s.MaViTri }} ({{ s.LoaiCho }}) {% if s.MaTru %}[Trụ {{ s.MaTru }}: {{ s.ChuanKetNoi }} {{ s.CongSuat_kW }}kW]{% else %}[Chỉ đỗ xe]{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Deposit & Submit -->
+                <div class="lg:col-span-1">
+                    <button type="submit" class="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs sm:text-sm transition-colors shadow-sm flex items-center justify-center">
+                        <i class="fa-solid fa-calendar-plus mr-1.5"></i>
+                        <span id="submit-text">Đặt Chỗ</span>
+                    </button>
+                </div>
+            </div>
+
             <input type="hidden" name="tien_coc" value="20000">
             <input type="hidden" name="minutes" value="30">
         </form>
+
         <div class="mt-2 text-xs text-slate-400">
-            * Cọc mặc định: 20.000đ | Thời hạn giữ chỗ mặc định: 30 phút. Ràng buộc trigger sẽ từ chối nếu loại xe không khớp loại chỗ.
+            * Cọc mặc định: 20.000đ | Thời hạn giữ chỗ: 30 phút. Bạn có thể tự đặt cho xe của mình hoặc đặt giữ chỗ giùm người thân / bạn bè.
         </div>
-        {% endif %}
     </div>
     {% endif %}
 
@@ -100,7 +130,7 @@
         <h3 class="font-bold text-slate-900 text-base mb-4 flex items-center">
             <i class="fa-solid fa-list-check text-slate-500 mr-2"></i>Danh Sách Đặt Chỗ
             {% if is_logged_in and current_role == 'customer' %}
-            <span class="ml-2 text-xs px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full font-semibold">Ưu tiên đặt chỗ của bạn</span>
+            <span class="ml-2 text-xs px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full font-semibold">Ưu tiên xe của bạn & xe đặt giùm</span>
             {% endif %}
         </h3>
 
@@ -120,13 +150,15 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     {% for b in bookings %}
-                    <tr class="hover:bg-slate-50/80 transition-colors {% if b.IsMyBooking %}bg-emerald-50/40{% endif %}">
+                    <tr class="hover:bg-slate-50/80 transition-colors {% if b.IsMyVehicleBooking %}bg-emerald-50/40{% elif b.IsBookedForOther %}bg-blue-50/30{% endif %}">
                         <td class="py-3 px-3 font-mono font-bold text-slate-900">{{ b.MaDatCho }}</td>
                         <td class="py-3 px-3">
-                            <div class="font-mono font-semibold text-slate-800 flex items-center">
+                            <div class="font-mono font-semibold text-slate-800 flex items-center flex-wrap gap-1">
                                 {{ b.BienSo }}
-                                {% if b.IsMyBooking %}
-                                <span class="ml-1.5 px-1.5 py-0.5 bg-emerald-600 text-white text-[10px] rounded font-semibold font-sans">Xe của bạn</span>
+                                {% if b.IsMyVehicleBooking %}
+                                <span class="px-1.5 py-0.5 bg-emerald-600 text-white text-[10px] rounded font-semibold font-sans">Xe của bạn</span>
+                                {% elif b.IsBookedForOther %}
+                                <span class="px-1.5 py-0.5 bg-blue-600 text-white text-[10px] rounded font-semibold font-sans">Bạn đặt giùm</span>
                                 {% endif %}
                             </div>
                             <div class="text-slate-400 text-[11px]">{{ b.TenKhach }} ({{ b.LoaiXe }})</div>
@@ -173,4 +205,37 @@
         </div>
     </div>
 </div>
+
+<script>
+function setBookingMode(mode) {
+    const modeInput = document.getElementById('booking_mode');
+    const boxMy = document.getElementById('box-my-vehicle');
+    const boxOther = document.getElementById('box-other-vehicle');
+    const btnMy = document.getElementById('btn-mode-my');
+    const btnOther = document.getElementById('btn-mode-other');
+    const submitText = document.getElementById('submit-text');
+    const selectMy = document.getElementById('select_my_xe');
+
+    modeInput.value = mode;
+    if (mode === 'other_vehicle') {
+        boxMy.classList.add('hidden');
+        boxOther.classList.remove('hidden');
+        btnMy.classList.remove('bg-white', 'text-emerald-700', 'shadow-sm');
+        btnMy.classList.add('text-slate-600');
+        btnOther.classList.add('bg-white', 'text-blue-700', 'shadow-sm');
+        btnOther.classList.remove('text-slate-600');
+        submitText.innerText = "Đặt Chỗ Giùm";
+        if (selectMy) selectMy.removeAttribute('required');
+    } else {
+        boxMy.classList.remove('hidden');
+        boxOther.classList.add('hidden');
+        btnMy.classList.add('bg-white', 'text-emerald-700', 'shadow-sm');
+        btnMy.classList.remove('text-slate-600');
+        btnOther.classList.remove('bg-white', 'text-blue-700', 'shadow-sm');
+        btnOther.classList.add('text-slate-600');
+        submitText.innerText = "Đặt Chỗ";
+        if (selectMy) selectMy.setAttribute('required', 'required');
+    }
+}
+</script>
 {% endblock %}

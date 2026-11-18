@@ -12,8 +12,8 @@ def switch_role(role):
     """
     if role == "admin":
         if session.get("role") != "admin":
-            flash("Khu vực bảo vệ: Vui lòng nhập tài khoản Quản trị viên (Admin) để kích hoạt quyền quản trị!", "warning")
-            return redirect(url_for("auth.login_page", role="admin", next=request.referrer or url_for("main.dashboard")))
+            flash("Khu vực bảo vệ nội bộ: Vui lòng đăng nhập qua Cổng Quản Trị Viên (Admin Portal)!", "warning")
+            return redirect(url_for("auth.admin_login_page", next=request.referrer or url_for("main.dashboard")))
     elif role == "customer":
         session["role"] = "customer"
         flash("Đã chuyển sang chế độ Khách Hàng (Tài xế EV).", "info")

@@ -6,10 +6,14 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from config import Config
+from db import init_app_tables
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+
+    # Khởi tạo bảng phụ trợ nếu cần
+    init_app_tables()
 
     @app.context_processor
     def inject_global_role():

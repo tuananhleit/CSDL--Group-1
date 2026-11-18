@@ -10,9 +10,9 @@
             <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Hóa Đơn & Sổ Cái Ví Điện Tử</h1>
             <p class="text-xs sm:text-sm text-slate-500 mt-1">
                 {% if current_role == 'admin' %}
-                Đối soát hóa đơn toàn hệ thống và Sổ cái tài chính bất biến (Append-Only) trên <code>GIAO_DICH_VI</code>.
+                Đối soát hóa đơn toàn hệ thống, Phê duyệt nạp tiền ví và Sổ cái tài chính bất biến (Append-Only) trên <code>GIAO_DICH_VI</code>.
                 {% else %}
-                Tra cứu hóa đơn dịch vụ cá nhân và quản lý số dư ví điện tử trừ phí tự động.
+                Tra cứu hóa đơn dịch vụ cá nhân, gửi yêu cầu nạp tiền ví và quản lý số dư ví điện tử trừ phí tự động.
                 {% endif %}
             </p>
         </div>
@@ -54,6 +54,95 @@
         </div>
     </div>
     {% else %}
+
+    {% if current_role == 'admin' %}
+    <!-- Admin Top-up Verification Panel -->
+    <div class="bg-gradient-to-r from-purple-950 via-slate-900 to-indigo-950 text-white rounded-2xl p-6 shadow-xl border border-purple-800/50">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-purple-600 flex items-center justify-center text-lg shadow-md shadow-purple-500/20">
+                    <i class="fa-solid fa-stamp"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-white flex items-center">
+                        Xác Thực & Phê Duyệt Yêu Cầu Nạp Tiền Ví
+                    </h3>
+                    <p class="text-xs text-purple-200/80 mt-0.5">Đối soát giao dịch chuyển khoản ngân hàng và kích hoạt cộng tiền ví cho tài xế</p>
+                </div>
+            </div>
+            <span class="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-xs font-semibold border border-purple-500/30 self-start sm:self-auto">
+                {{ pending_topups|selectattr('TrangThai', 'equalto', 'Pending')|list|length }} Yêu cầu chờ duyệt
+            </span>
+        </div>
+
+        <div class="bg-slate-900/90 rounded-xl border border-slate-800 overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-800/90 text-slate-400 uppercase tracking-wider border-b border-slate-700">
+                    <tr>
+                        <th class="py-3 px-3">Mã YC</th>
+                        <th class="py-3 px-3">Khách Hàng</th>
+                        <th class="py-3 px-3 text-right">Số Tiền</th>
+                        <th class="py-3 px-3">Phương Thức & Ref</th>
+                        <th class="py-3 px-3">Thời Gian Gửi</th>
+                        <th class="py-3 px-3">Trạng Thái</th>
+                        <th class="py-3 px-3 text-center">Xác Thực Của Admin</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800">
+                    {% for yc in pending_topups %}
+                    <tr class="hover:bg-slate-800/50 transition-colors {% if yc.TrangThai == 'Pending' %}bg-purple-900/10{% endif %}">
+                        <td class="py-3 px-3 font-mono font-bold text-white">{{ yc.MaYC }}</td>
+                        <td class="py-3 px-3">
+                            <div class="font-medium text-white">{{ yc.HoTen }}</div>
+                            <div class="text-[11px] text-slate-400">{{ yc.MaKH }} - {{ yc.SDT }} (Ví hiện tại: {{ "{:,.0f}".format(yc.SoDuViDienTu) }}đ)</div>
+                        </td>
+                        <td class="py-3 px-3 text-right font-bold text-emerald-400 text-sm">
+                            +{{ "{:,.0f}".format(yc.SoTien) }}đ
+                        </td>
+                        <td class="py-3 px-3">
+                            <div class="text-white">{{ yc.PhuongThuc }}</div>
+                            <div class="text-[11px] font-mono text-purple-300">{{ yc.MaThamChieu or '—' }}</div>
+                        </td>
+                        <td class="py-3 px-3 text-slate-400">{{ yc.ThoiGianYeuCau }}</td>
+                        <td class="py-3 px-3">
+                            {% if yc.TrangThai == 'Pending' %}
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30 animate-pulse">Chờ Duyệt</span>
+                            {% elif yc.TrangThai == 'Approved' %}
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Đã Duyệt</span>
+                            {% else %}
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/30">Từ Chối</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-3 text-center">
+                            {% if yc.TrangThai == 'Pending' %}
+                            <div class="flex items-center justify-center space-x-1.5">
+                                <form method="POST" action="{{ url_for('billing.approve_topup', id=yc.MaYC) }}" onsubmit="return confirm('Xác nhận đã nhận đủ {{ '{:,.0f}'.format(yc.SoTien) }}đ từ {{ yc.HoTen }} và phê duyệt cộng tiền ví?')">
+                                    <button type="submit" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm flex items-center">
+                                        <i class="fa-solid fa-check mr-1"></i>Duyệt Nạp
+                                    </button>
+                                </form>
+                                <form method="POST" action="{{ url_for('billing.reject_topup', id=yc.MaYC) }}" onsubmit="return confirm('Bạn chắc chắn muốn từ chối yêu cầu {{ yc.MaYC }}?')">
+                                    <button type="submit" class="px-2 py-1 bg-slate-800 hover:bg-rose-900/60 text-slate-300 hover:text-rose-200 border border-slate-700 rounded-lg text-xs font-semibold transition-colors">
+                                        Từ chối
+                                    </button>
+                                </form>
+                            </div>
+                            {% else %}
+                            <span class="text-slate-500 text-[11px]">{{ yc.NguoiDuyet or 'Đã đối soát' }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="py-6 text-center text-slate-500">Hiện không có yêu cầu nạp tiền nào cần phê duyệt</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
     {% if current_role == 'customer' %}
     <!-- Privacy & Role Notice for Customer -->
     <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs text-emerald-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-sm">
@@ -88,21 +177,78 @@
                 </div>
             </div>
         </div>
-        <div class="bg-gradient-to-tr from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-3 sm:text-right w-full sm:w-auto flex flex-col sm:items-end justify-between">
+        <div class="bg-gradient-to-tr from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-4 sm:text-right w-full sm:w-auto flex flex-col sm:items-end justify-between">
             <div>
-                <div class="text-xs text-slate-500 font-medium">Số Dư Ví Điện Tử</div>
+                <div class="text-xs text-slate-500 font-medium">Số Dư Ví Hiện Tại</div>
                 <div class="text-2xl font-bold text-emerald-600">{{ "{:,.0f}".format(customer_info.SoDuViDienTu) }}đ</div>
             </div>
-            <!-- Quick Top-Up Form -->
-            <form method="POST" action="{{ url_for('billing.topup_wallet') }}" class="mt-2 flex items-center space-x-1.5">
-                <input type="number" name="amount" min="10000" step="10000" value="50000" class="w-24 px-2 py-1 bg-white border border-emerald-300 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500" title="Số tiền nạp (VNĐ)">
-                <button type="submit" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm flex items-center">
-                    <i class="fa-solid fa-plus-circle mr-1"></i>Nạp Tiền Ví
-                </button>
+            <!-- Top-Up Request Form with Admin Approval Requirement -->
+            <form method="POST" action="{{ url_for('billing.request_topup') }}" class="mt-3 flex flex-col sm:items-end space-y-2">
+                <div class="flex flex-wrap items-center gap-1.5">
+                    <select name="phuong_thuc" class="px-2 py-1 bg-white border border-emerald-300 rounded-lg text-xs text-slate-700 focus:outline-none">
+                        <option value="BankTransfer_VietQR">VietQR (Chuyển khoản)</option>
+                        <option value="MoMo">Ví MoMo</option>
+                        <option value="ATM_Card">Thẻ ATM</option>
+                    </select>
+                    <input type="number" name="amount" min="10000" step="10000" value="50000" class="w-24 px-2 py-1 bg-white border border-emerald-300 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500" title="Số tiền nạp (VNĐ)">
+                    <button type="submit" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm flex items-center">
+                        <i class="fa-solid fa-paper-plane mr-1"></i>Nạp Tiền Ví
+                    </button>
+                </div>
+                <span class="text-[11px] text-slate-500 italic">* Yêu cầu nạp ví cần được Quản trị viên đối soát & xác thực để cộng tiền</span>
             </form>
         </div>
     </div>
     {% endif %}
+
+    <!-- Topup Requests History (Customer View) -->
+    {% if topup_requests %}
+    <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+        <h4 class="font-bold text-slate-900 text-sm mb-3 flex items-center justify-between">
+            <span class="flex items-center">
+                <i class="fa-solid fa-clock-rotate-left text-slate-500 mr-2"></i>Lịch Sử Yêu Cầu Nạp Tiền Ví
+            </span>
+            <span class="text-xs text-slate-400 font-normal">Xác thực bởi Quản trị viên</span>
+        </h4>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 text-slate-500 uppercase border-b border-slate-200">
+                    <tr>
+                        <th class="py-2.5 px-3">Mã YC</th>
+                        <th class="py-2.5 px-3 text-right">Số Tiền</th>
+                        <th class="py-2.5 px-3">Phương Thức</th>
+                        <th class="py-2.5 px-3">Mã Tham Chiếu</th>
+                        <th class="py-2.5 px-3">Thời Gian Gửi</th>
+                        <th class="py-2.5 px-3">Trạng Thái</th>
+                        <th class="py-2.5 px-3">Xác Thực Bởi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for yc in topup_requests %}
+                    <tr class="hover:bg-slate-50/80">
+                        <td class="py-2.5 px-3 font-mono font-bold text-slate-800">{{ yc.MaYC }}</td>
+                        <td class="py-2.5 px-3 text-right font-bold text-emerald-600">+{{ "{:,.0f}".format(yc.SoTien) }}đ</td>
+                        <td class="py-2.5 px-3 text-slate-600">{{ yc.PhuongThuc }}</td>
+                        <td class="py-2.5 px-3 font-mono text-slate-500">{{ yc.MaThamChieu or '—' }}</td>
+                        <td class="py-2.5 px-3 text-slate-500">{{ yc.ThoiGianYeuCau }}</td>
+                        <td class="py-2.5 px-3">
+                            {% if yc.TrangThai == 'Pending' %}
+                            <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 animate-pulse">Chờ Admin Duyệt</span>
+                            {% elif yc.TrangThai == 'Approved' %}
+                            <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">Đã Phê Duyệt</span>
+                            {% else %}
+                            <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-800">Từ Chối</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-2.5 px-3 text-slate-500">{{ yc.NguoiDuyet or '—' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
     {% endif %}
 
     <!-- Invoices Table -->
