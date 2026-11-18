@@ -30,3 +30,6 @@ __pycache__/
 
 # Archive of historical drafts (Postgres drafts, old Word/Markdown notes)
 archive/
+
+# Scratch & Test Scripts
+scratch/

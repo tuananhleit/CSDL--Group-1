@@ -25,6 +25,8 @@ def switch_role(role):
 def dashboard():
     db_ok, db_msg = test_connection()
     current_role = session.get("role", "customer")
+    is_logged_in = session.get("logged_in", False)
+    current_user_id = session.get("user_id")
     stats = {
         "total_customers": 0,
         "total_stations": 0,
@@ -60,16 +62,30 @@ def dashboard():
             else:
                 stats["paid_revenue"] = 0
 
-            stats["recent_sessions"] = query_all("""
-                SELECT p.MaPhien, pt.BienSo, t.TenTram, c.MaViTri, p.LoaiPhien, p.TrangThaiPhien, p.ThoiGianVao
-                FROM PHIEN p
-                JOIN PHUONG_TIEN pt ON p.MaXe = pt.MaXe
-                JOIN CHO_DO_XE c ON p.MaCho = c.MaCho
-                JOIN TRAM t ON c.MaTram = t.MaTram
-                ORDER BY p.ThoiGianVao DESC
-                LIMIT 6
-            """)
+            if current_role == "customer" and is_logged_in and current_user_id:
+                stats["recent_sessions"] = query_all("""
+                    SELECT p.MaPhien, pt.BienSo, t.TenTram, c.MaViTri, p.LoaiPhien, p.TrangThaiPhien, p.ThoiGianVao,
+                           (pt.MaKH = %s) AS IsMySession
+                    FROM PHIEN p
+                    JOIN PHUONG_TIEN pt ON p.MaXe = pt.MaXe
+                    JOIN CHO_DO_XE c ON p.MaCho = c.MaCho
+                    JOIN TRAM t ON c.MaTram = t.MaTram
+                    ORDER BY (pt.MaKH = %s) DESC, p.ThoiGianVao DESC
+                    LIMIT 6
+                """, (current_user_id, current_user_id))
+            else:
+                stats["recent_sessions"] = query_all("""
+                    SELECT p.MaPhien, pt.BienSo, t.TenTram, c.MaViTri, p.LoaiPhien, p.TrangThaiPhien, p.ThoiGianVao,
+                           0 AS IsMySession
+                    FROM PHIEN p
+                    JOIN PHUONG_TIEN pt ON p.MaXe = pt.MaXe
+                    JOIN CHO_DO_XE c ON p.MaCho = c.MaCho
+                    JOIN TRAM t ON c.MaTram = t.MaTram
+                    ORDER BY p.ThoiGianVao DESC
+                    LIMIT 6
+                """)
         except Exception as e:
             db_msg = f"Lỗi truy vấn: {str(e)}"
             
-    return render_template("dashboard.html", db_ok=db_ok, db_msg=db_msg, stats=stats, current_role=current_role)
+    return render_template("dashboard.html", db_ok=db_ok, db_msg=db_msg, stats=stats,
+                           current_role=current_role, is_logged_in=is_logged_in)

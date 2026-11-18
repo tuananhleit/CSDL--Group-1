@@ -83,5 +83,38 @@ ADMIN_CREDENTIALS = {
     }
 }
 
-# Mật khẩu PIN mặc định cho Khách hàng (PIN: 123456)
+# Mật khẩu PIN mặc định cho Khách hàng mẫu (PIN: 123456)
 DEFAULT_CUSTOMER_PIN_HASH = hash_password("123456")
+
+# Quản lý kho lưu trữ mật mã SHA-256 cho tài khoản đăng ký mới
+import json
+import os
+
+CREDENTIALS_FILE = os.path.join(os.path.dirname(__file__), "user_credentials.json")
+
+def load_customer_credentials():
+    if os.path.exists(CREDENTIALS_FILE):
+        try:
+            with open(CREDENTIALS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+def save_customer_credential(makh: str, sdt: str, pin_hash: str):
+    creds = load_customer_credentials()
+    if makh:
+        creds[makh] = pin_hash
+    if sdt:
+        creds[sdt] = pin_hash
+    try:
+        with open(CREDENTIALS_FILE, "w", encoding="utf-8") as f:
+            json.dump(creds, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"Lỗi lưu trữ credentials: {e}")
+
+def get_customer_pin_hash(ident: str) -> str:
+    creds = load_customer_credentials()
+    if ident in creds:
+        return creds[ident]
+    return DEFAULT_CUSTOMER_PIN_HASH

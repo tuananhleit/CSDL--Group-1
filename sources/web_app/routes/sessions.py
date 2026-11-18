@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from db import test_connection, query_all, query_one, execute_statement, call_procedure, format_db_error
 import datetime
 
@@ -10,24 +10,84 @@ def list_sessions():
     sessions = []
     available_slots = []
     vehicles = []
+    current_role = session.get("role", "customer")
+    is_logged_in = session.get("logged_in", False)
+    current_user_id = session.get("user_id")
     
     if db_ok:
         try:
-            sessions = query_all("""
-                SELECT p.MaPhien, p.MaXe, pt.BienSo, pt.LoaiXe, kh.HoTen AS TenKhach,
-                       p.MaCho, t.TenTram, c.MaViTri, p.LoaiPhien, p.TrangThaiPhien,
-                       p.ThoiGianVao, p.ThoiGianRa,
-                       cts.MaTru, cts.TrangThaiSac, cts.ChiSoCongToDau, cts.ChiSoCongToCuoi,
-                       cts.SoKWh, cts.LyDoKetThuc
-                FROM PHIEN p
-                JOIN PHUONG_TIEN pt ON p.MaXe = pt.MaXe
-                JOIN KHACH_HANG kh ON pt.MaKH = kh.MaKH
-                JOIN CHO_DO_XE c ON p.MaCho = c.MaCho
-                JOIN TRAM t ON c.MaTram = t.MaTram
-                LEFT JOIN CHI_TIET_PHIEN_SAC cts ON p.MaPhien = cts.MaPhien
-                ORDER BY (p.TrangThaiPhien = 'Active') DESC, p.ThoiGianVao DESC
-                LIMIT 50
-            """)
+            if current_role == "customer" and is_logged_in and current_user_id:
+                sessions = query_all("""
+                    SELECT p.MaPhien, p.MaXe, pt.BienSo, pt.LoaiXe, kh.HoTen AS TenKhach,
+                           p.MaCho, t.TenTram, c.MaViTri, p.LoaiPhien, p.TrangThaiPhien,
+                           p.ThoiGianVao, p.ThoiGianRa,
+                           cts.MaTru, cts.TrangThaiSac, cts.ChiSoCongToDau, cts.ChiSoCongToCuoi,
+                           cts.SoKWh, cts.LyDoKetThuc,
+                           (pt.MaKH = %s) AS IsMySession
+                    FROM PHIEN p
+                    JOIN PHUONG_TIEN pt ON p.MaXe = pt.MaXe
+                    JOIN KHACH_HANG kh ON pt.MaKH = kh.MaKH
+                    JOIN CHO_DO_XE c ON p.MaCho = c.MaCho
+                    JOIN TRAM t ON c.MaTram = t.MaTram
+                    LEFT JOIN CHI_TIET_PHIEN_SAC cts ON p.MaPhien = cts.MaPhien
+                    ORDER BY (pt.MaKH = %s) DESC, (p.TrangThaiPhien = 'Active') DESC, p.ThoiGianVao DESC
+                    LIMIT 50
+                """, (current_user_id, current_user_id))
+
+                vehicles = query_all("""
+                    SELECT pt.MaXe, pt.BienSo, pt.LoaiXe, pt.ChuanSac, kh.HoTen,
+                           1 AS IsMyVehicle
+                    FROM PHUONG_TIEN pt
+                    JOIN KHACH_HANG kh ON pt.MaKH = kh.MaKH
+                    WHERE pt.MaKH = %s AND pt.BiDenKhoa = FALSE AND kh.TrangThaiTK = 'Active'
+                    ORDER BY pt.BienSo
+                """, (current_user_id,))
+            elif current_role == "admin":
+                sessions = query_all("""
+                    SELECT p.MaPhien, p.MaXe, pt.BienSo, pt.LoaiXe, kh.HoTen AS TenKhach,
+                           p.MaCho, t.TenTram, c.MaViTri, p.LoaiPhien, p.TrangThaiPhien,
+                           p.ThoiGianVao, p.ThoiGianRa,
+                           cts.MaTru, cts.TrangThaiSac, cts.ChiSoCongToDau, cts.ChiSoCongToCuoi,
+                           cts.SoKWh, cts.LyDoKetThuc,
+                           1 AS IsMySession
+                    FROM PHIEN p
+                    JOIN PHUONG_TIEN pt ON p.MaXe = pt.MaXe
+                    JOIN KHACH_HANG kh ON pt.MaKH = kh.MaKH
+                    JOIN CHO_DO_XE c ON p.MaCho = c.MaCho
+                    JOIN TRAM t ON c.MaTram = t.MaTram
+                    LEFT JOIN CHI_TIET_PHIEN_SAC cts ON p.MaPhien = cts.MaPhien
+                    ORDER BY (p.TrangThaiPhien = 'Active') DESC, p.ThoiGianVao DESC
+                    LIMIT 50
+                """)
+
+                vehicles = query_all("""
+                    SELECT pt.MaXe, pt.BienSo, pt.LoaiXe, pt.ChuanSac, kh.HoTen, 0 AS IsMyVehicle
+                    FROM PHUONG_TIEN pt
+                    JOIN KHACH_HANG kh ON pt.MaKH = kh.MaKH
+                    WHERE pt.BiDenKhoa = FALSE AND kh.TrangThaiTK = 'Active'
+                    ORDER BY pt.BienSo
+                    LIMIT 100
+                """)
+            else:
+                # Khách hàng chưa đăng nhập: Không lộ xe cá nhân trong dropdown
+                sessions = query_all("""
+                    SELECT p.MaPhien, p.MaXe, pt.BienSo, pt.LoaiXe, kh.HoTen AS TenKhach,
+                           p.MaCho, t.TenTram, c.MaViTri, p.LoaiPhien, p.TrangThaiPhien,
+                           p.ThoiGianVao, p.ThoiGianRa,
+                           cts.MaTru, cts.TrangThaiSac, cts.ChiSoCongToDau, cts.ChiSoCongToCuoi,
+                           cts.SoKWh, cts.LyDoKetThuc,
+                           0 AS IsMySession
+                    FROM PHIEN p
+                    JOIN PHUONG_TIEN pt ON p.MaXe = pt.MaXe
+                    JOIN KHACH_HANG kh ON pt.MaKH = kh.MaKH
+                    JOIN CHO_DO_XE c ON p.MaCho = c.MaCho
+                    JOIN TRAM t ON c.MaTram = t.MaTram
+                    LEFT JOIN CHI_TIET_PHIEN_SAC cts ON p.MaPhien = cts.MaPhien
+                    ORDER BY (p.TrangThaiPhien = 'Active') DESC, p.ThoiGianVao DESC
+                    LIMIT 30
+                """)
+                vehicles = []
+
             available_slots = query_all("""
                 SELECT c.MaCho, c.MaViTri, c.LoaiCho, c.TrangThaiCho, t.TenTram,
                        ts.MaTru, ts.TrangThaiTru, lt.ChuanKetNoi, lt.CongSuat_kW
@@ -38,27 +98,38 @@ def list_sessions():
                 WHERE c.TrangThaiCho IN ('Available', 'Reserved')
                 ORDER BY t.TenTram, c.MaViTri
             """)
-            vehicles = query_all("""
-                SELECT pt.MaXe, pt.BienSo, pt.LoaiXe, pt.ChuanSac, kh.HoTen
-                FROM PHUONG_TIEN pt
-                JOIN KHACH_HANG kh ON pt.MaKH = kh.MaKH
-                WHERE pt.BiDenKhoa = FALSE AND kh.TrangThaiTK = 'Active'
-                ORDER BY pt.BienSo
-                LIMIT 100
-            """)
         except Exception as e:
             db_msg = str(e)
             
     return render_template("sessions.html", db_ok=db_ok, db_msg=db_msg,
                            sessions=sessions, available_slots=available_slots,
-                           vehicles=vehicles)
+                           vehicles=vehicles, current_role=current_role, is_logged_in=is_logged_in)
 
 @sessions_bp.route("/sessions/create", methods=["POST"])
 def create_session():
+    current_role = session.get("role", "customer")
+    is_logged_in = session.get("logged_in", False)
+    current_user_id = session.get("user_id")
+
+    if current_role == "customer" and not is_logged_in:
+        flash("Vui lòng đăng nhập hoặc tạo tài khoản để mở phiên sạc cho xe của bạn!", "warning")
+        return redirect(url_for("auth.login_page", next=url_for("sessions.list_sessions")))
+
     ma_xe = request.form.get("ma_xe")
     ma_cho = request.form.get("ma_cho")
     loai_phien = request.form.get("loai_phien", "ParkingOnly")
     ma_dat_cho = request.form.get("ma_dat_cho") or None
+
+    if not ma_xe or not ma_cho:
+        flash("Vui lòng chọn phương tiện và vị trí ô đỗ!", "warning")
+        return redirect(url_for("sessions.list_sessions"))
+
+    # Kiểm tra quyền sở hữu xe (Chống IDOR)
+    if current_role == "customer":
+        owner = query_one("SELECT MaKH FROM PHUONG_TIEN WHERE MaXe = %s", (ma_xe,))
+        if not owner or owner["MaKH"] != current_user_id:
+            flash("Lỗi bảo mật: Bạn chỉ có thể mở phiên cho phương tiện thuộc sở hữu của bạn!", "danger")
+            return redirect(url_for("sessions.list_sessions"))
     
     now = datetime.datetime.now()
     ma_phien = f"P{int(now.timestamp())}"
@@ -102,6 +173,20 @@ def create_session():
 
 @sessions_bp.route("/sessions/<id>/cutoff", methods=["POST"])
 def cutoff_session(id):
+    current_role = session.get("role", "customer")
+    is_logged_in = session.get("logged_in", False)
+    current_user_id = session.get("user_id")
+
+    if current_role == "customer" and not is_logged_in:
+        flash("Vui lòng đăng nhập để thao tác ngắt sạc!", "warning")
+        return redirect(url_for("auth.login_page", next=url_for("sessions.list_sessions")))
+
+    if current_role == "customer":
+        owner = query_one("SELECT pt.MaKH FROM PHIEN p JOIN PHUONG_TIEN pt ON p.MaXe = pt.MaXe WHERE p.MaPhien = %s", (id,))
+        if not owner or owner["MaKH"] != current_user_id:
+            flash("Lỗi bảo mật: Bạn không có quyền ngắt sạc phiên của xe khác!", "danger")
+            return redirect(url_for("sessions.list_sessions"))
+
     chi_so_cuoi = float(request.form.get("chi_so_cuoi", 1025.50))
     now = datetime.datetime.now()
     try:
@@ -121,6 +206,20 @@ def cutoff_session(id):
 
 @sessions_bp.route("/sessions/<id>/complete", methods=["POST"])
 def complete_session(id):
+    current_role = session.get("role", "customer")
+    is_logged_in = session.get("logged_in", False)
+    current_user_id = session.get("user_id")
+
+    if current_role == "customer" and not is_logged_in:
+        flash("Vui lòng đăng nhập để thao tác cho xe ra bãi!", "warning")
+        return redirect(url_for("auth.login_page", next=url_for("sessions.list_sessions")))
+
+    if current_role == "customer":
+        owner = query_one("SELECT pt.MaKH FROM PHIEN p JOIN PHUONG_TIEN pt ON p.MaXe = pt.MaXe WHERE p.MaPhien = %s", (id,))
+        if not owner or owner["MaKH"] != current_user_id:
+            flash("Lỗi bảo mật: Bạn không có quyền kết thúc phiên của xe khác!", "danger")
+            return redirect(url_for("sessions.list_sessions"))
+
     now = datetime.datetime.now()
     try:
         p = query_one("SELECT MaCho, LoaiPhien, MaXe FROM PHIEN WHERE MaPhien = %s", (id,))

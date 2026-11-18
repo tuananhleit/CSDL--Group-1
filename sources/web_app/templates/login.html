@@ -83,6 +83,13 @@
                     <i class="fa-solid fa-right-to-bracket"></i>
                     <span>Đăng Nhập Khách Hàng</span>
                 </button>
+
+                <div class="text-center pt-2">
+                    <span class="text-xs text-slate-500">Chưa có tài khoản thành viên?</span>
+                    <a href="{{ url_for('auth.register_page') }}" class="text-xs font-bold text-emerald-600 hover:text-emerald-700 hover:underline ml-1">
+                        Đăng ký tài khoản mới ngay
+                    </a>
+                </div>
             </form>
 
             <!-- 2. FORM QUẢN TRỊ VIÊN -->

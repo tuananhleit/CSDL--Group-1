@@ -84,9 +84,14 @@
                         </a>
                     </div>
                     {% else %}
-                    <a href="{{ url_for('auth.login_page') }}" class="px-2.5 sm:px-3 py-1 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 text-white font-semibold rounded-lg text-xs shadow-sm transition-all flex items-center">
-                        <i class="fa-solid fa-right-to-bracket mr-1.5"></i><span>Đăng Nhập</span>
-                    </a>
+                    <div class="flex items-center space-x-1.5 sm:space-x-2">
+                        <a href="{{ url_for('auth.register_page') }}" class="px-2 sm:px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/30 font-semibold rounded-lg text-xs transition-all flex items-center" title="Đăng ký tài khoản EV mới">
+                            <i class="fa-solid fa-user-plus mr-1"></i><span class="hidden sm:inline">Đăng Ký</span>
+                        </a>
+                        <a href="{{ url_for('auth.login_page') }}" class="px-2.5 sm:px-3 py-1 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 text-white font-semibold rounded-lg text-xs shadow-sm transition-all flex items-center">
+                            <i class="fa-solid fa-right-to-bracket mr-1"></i><span>Đăng Nhập</span>
+                        </a>
+                    </div>
                     {% endif %}
 
                     <!-- Role Switcher Pill -->

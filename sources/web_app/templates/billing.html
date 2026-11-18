@@ -17,9 +17,10 @@
             </p>
         </div>
 
-        <!-- Search Bar -->
+        {% if current_role == 'admin' %}
+        <!-- Search Bar for Admin -->
         <form method="GET" action="{{ url_for('billing.list_billing') }}" class="flex items-center space-x-2">
-            <input type="text" name="search" value="{{ search or '' }}" placeholder="{% if current_role == 'admin' %}Tìm theo Mã HĐ, Biển số, Tên KH...{% else %}Nhập Biển số, Mã KH hoặc SĐT...{% endif %}"
+            <input type="text" name="search" value="{{ search or '' }}" placeholder="Tìm theo Mã HĐ, Biển số, Tên KH..."
                    class="px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 w-64">
             <button type="submit" class="px-3.5 py-2 bg-slate-900 hover:bg-emerald-600 text-white rounded-xl text-xs font-semibold transition-colors">
                 <i class="fa-solid fa-magnifying-glass"></i>
@@ -30,8 +31,29 @@
             </a>
             {% endif %}
         </form>
+        {% endif %}
     </div>
 
+    {% if current_role == 'customer' and not is_logged_in %}
+    <!-- Locked State for Unauthenticated Visitors -->
+    <div class="bg-white rounded-3xl border border-slate-200/80 p-8 sm:p-12 text-center max-w-xl mx-auto my-10 shadow-xl shadow-slate-100">
+        <div class="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto mb-5 text-3xl border border-emerald-100 shadow-inner">
+            <i class="fa-solid fa-wallet"></i>
+        </div>
+        <h2 class="text-xl sm:text-2xl font-bold text-slate-900 mb-2">Bảo Mật Quyền Riêng Tư Tài Chính</h2>
+        <p class="text-xs sm:text-sm text-slate-500 mb-8 leading-relaxed">
+            Bạn hiện chưa đăng nhập vào hệ thống. Để bảo vệ dữ liệu cá nhân, số dư ví điện tử và thông tin hóa đơn dịch vụ, vui lòng đăng nhập hoặc tạo tài khoản EV mới.
+        </p>
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <a href="{{ url_for('auth.login_page', next=url_for('billing.list_billing')) }}" class="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-xl text-sm transition-all shadow-md shadow-emerald-600/30 flex items-center justify-center">
+                <i class="fa-solid fa-right-to-bracket mr-2"></i>Đăng Nhập Ngay
+            </a>
+            <a href="{{ url_for('auth.register_page', next=url_for('billing.list_billing')) }}" class="w-full sm:w-auto px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition-all flex items-center justify-center border border-slate-200">
+                <i class="fa-solid fa-user-plus mr-2"></i>Tạo Tài Khoản Mới
+            </a>
+        </div>
+    </div>
+    {% else %}
     {% if current_role == 'customer' %}
     <!-- Privacy & Role Notice for Customer -->
     <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs text-emerald-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-sm">
@@ -66,9 +88,18 @@
                 </div>
             </div>
         </div>
-        <div class="bg-gradient-to-tr from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-3 sm:text-right w-full sm:w-auto">
-            <div class="text-xs text-slate-500 font-medium">Số Dư Ví Điện Tử</div>
-            <div class="text-2xl font-bold text-emerald-600">{{ "{:,.0f}".format(customer_info.SoDuViDienTu) }}đ</div>
+        <div class="bg-gradient-to-tr from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-3 sm:text-right w-full sm:w-auto flex flex-col sm:items-end justify-between">
+            <div>
+                <div class="text-xs text-slate-500 font-medium">Số Dư Ví Điện Tử</div>
+                <div class="text-2xl font-bold text-emerald-600">{{ "{:,.0f}".format(customer_info.SoDuViDienTu) }}đ</div>
+            </div>
+            <!-- Quick Top-Up Form -->
+            <form method="POST" action="{{ url_for('billing.topup_wallet') }}" class="mt-2 flex items-center space-x-1.5">
+                <input type="number" name="amount" min="10000" step="10000" value="50000" class="w-24 px-2 py-1 bg-white border border-emerald-300 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500" title="Số tiền nạp (VNĐ)">
+                <button type="submit" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm flex items-center">
+                    <i class="fa-solid fa-plus-circle mr-1"></i>Nạp Tiền Ví
+                </button>
+            </form>
         </div>
     </div>
     {% endif %}
@@ -120,44 +151,45 @@
                         <td class="py-3 px-3 text-right text-slate-600">{{ "{:,.0f}".format(h.PhiDoXe) }}đ</td>
                         <td class="py-3 px-3 text-right text-slate-600">{{ "{:,.0f}".format(h.PhiSacDien) }}đ</td>
                         <td class="py-3 px-3 text-right text-slate-600">{{ "{:,.0f}".format(h.PhiDoSauSac) }}đ</td>
-                        <td class="py-3 px-3 text-right text-emerald-600 font-semibold">-{{ "{:,.0f}".format(h.TienKhauTru) }}đ</td>
-                        <td class="py-3 px-3 text-right font-bold text-slate-900 text-sm">{{ "{:,.0f}".format(h.TongTien) }}đ</td>
-                        <td class="py-3 px-3 text-slate-600">{{ h.PhuongThucThanhToan }}</td>
+                        <td class="py-3 px-3 text-right font-medium text-emerald-600">-{{ "{:,.0f}".format(h.TienKhauTru) }}đ</td>
+                        <td class="py-3 px-3 text-right font-bold text-slate-900">{{ "{:,.0f}".format(h.TongTien) }}đ</td>
+                        <td class="py-3 px-3">
+                            <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">{{ h.PhuongThucThanhToan }}</span>
+                        </td>
                         <td class="py-3 px-3">
                             {% if h.TrangThaiThanhToan == 'Paid' %}
                             <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">Paid</span>
-                            {% elif h.TrangThaiThanhToan == 'Unpaid' %}
-                            <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 animate-pulse">Unpaid</span>
                             {% else %}
-                            <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">{{ h.TrangThaiThanhToan }}</span>
+                            <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">Unpaid</span>
                             {% endif %}
                         </td>
                         <td class="py-3 px-3 text-center">
                             {% if h.TrangThaiThanhToan == 'Unpaid' %}
                             <div class="flex items-center justify-center space-x-1">
-                                <!-- Thanh toan Vi -->
+                                <!-- Thanh toán Ví -->
                                 <form method="POST" action="{{ url_for('billing.pay_by_wallet', id=h.MaHD) }}" onsubmit="return confirm('Xác nhận thanh toán hóa đơn {{ h.MaHD }} bằng ví của khách {{ h.MaKH }}?')">
-                                    <input type="hidden" name="ma_kh" value="{{ h.MaKH }}">
-                                    <button type="submit" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[11px] font-semibold transition-colors shadow-sm" title="Thanh toán qua ví">
+                                    <button type="submit" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[11px] font-semibold transition-colors shadow-sm" title="Trừ tiền trực tiếp từ số dư ví">
                                         Ví
                                     </button>
                                 </form>
-                                <!-- Thanh toan Direct QR -->
+                                <!-- Thanh toán Dynamic QR Walkin -->
                                 <form method="POST" action="{{ url_for('billing.pay_walkin', id=h.MaHD) }}" onsubmit="return confirm('Xác nhận thanh toán hóa đơn {{ h.MaHD }} qua Dynamic QR?')">
                                     <input type="hidden" name="phuong_thuc" value="Dynamic_QR">
-                                    <button type="submit" class="px-2 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded text-[11px] font-semibold transition-colors shadow-sm" title="Thanh toán Dynamic QR">
+                                    <button type="submit" class="px-2 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded text-[11px] font-semibold transition-colors shadow-sm" title="Quét mã VietQR chuyển khoản trực tiếp">
                                         QR
                                     </button>
                                 </form>
                             </div>
                             {% else %}
-                            <span class="text-xs text-slate-400 font-mono">{{ h.NgayThanhToan }}</span>
+                            <span class="text-slate-400 text-[11px]">{{ h.NgayThanhToan }}</span>
                             {% endif %}
                         </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="11" class="py-8 text-center text-slate-400">Không tìm thấy hóa đơn phù hợp</td>
+                        <td colspan="11" class="py-8 text-center text-slate-400">
+                            {% if search %}Không tìm thấy hóa đơn phù hợp với từ khóa "{{ search }}"{% else %}Chưa có hóa đơn nào{% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -165,20 +197,18 @@
         </div>
     </div>
 
-    <!-- Wallet Ledger Table (Append-Only) -->
+    <!-- Ledger (GIAO_DICH_VI) -->
     <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
         <h3 class="font-bold text-slate-900 text-base mb-4 flex items-center justify-between">
             <span class="flex items-center">
-                <i class="fa-solid fa-book-journal-whills text-purple-600 mr-2"></i>
+                <i class="fa-solid fa-book-journal-whills text-emerald-600 mr-2"></i>
                 {% if current_role == 'admin' %}
-                Sổ Cái Giao Dịch Ví Toàn Hệ Thống (GIAO_DICH_VI - Append-Only)
+                Sổ Cái Giao Dịch Bất Biến (GIAO_DICH_VI)
                 {% else %}
-                Lịch Sử Biến Động Số Dư Ví Của Bạn
+                Lịch Sử Biến Động Số Dư Ví Cá Nhân
                 {% endif %}
             </span>
-            <span class="text-xs text-purple-700 font-semibold px-2.5 py-0.5 bg-purple-50 rounded-full border border-purple-200">
-                Trigger cấm UPDATE & DELETE
-            </span>
+            <span class="text-xs text-slate-400">Append-Only: Trigger cấm UPDATE và DELETE</span>
         </h3>
 
         <div class="overflow-x-auto">
@@ -195,36 +225,38 @@
                         <th class="py-3 px-3">Ghi Chú</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100 font-mono">
+                <tbody class="divide-y divide-slate-100">
                     {% for g in transactions %}
                     <tr class="hover:bg-slate-50/80 transition-colors">
-                        <td class="py-2.5 px-3 font-bold text-slate-900">{{ g.MaGD }}</td>
-                        <td class="py-2.5 px-3 font-sans">{{ g.HoTen }} ({{ g.MaKH }})</td>
-                        <td class="py-2.5 px-3 font-sans">
-                            {% if g.LoaiGD == 'Deposit' %}
-                            <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800">Deposit</span>
-                            {% elif g.LoaiGD == 'Payment' %}
-                            <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-rose-100 text-rose-800">Payment</span>
-                            {% elif g.LoaiGD == 'DirectPayment' %}
-                            <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 text-blue-800">DirectPayment</span>
+                        <td class="py-3 px-3 font-mono font-bold text-slate-900">{{ g.MaGD }}</td>
+                        <td class="py-3 px-3">
+                            <span class="font-medium text-slate-800">{{ g.HoTen }}</span>
+                            <span class="text-slate-400 text-[11px] block font-mono">{{ g.MaKH }}</span>
+                        </td>
+                        <td class="py-3 px-3">
+                            {% if g.LoaiGD == 'Deposit' or g.LoaiGD == 'Refund' %}
+                            <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">+{{ g.LoaiGD }}</span>
                             {% else %}
-                            <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-purple-100 text-purple-800">{{ g.LoaiGD }}</span>
+                            <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-800">-{{ g.LoaiGD }}</span>
                             {% endif %}
                         </td>
-                        <td class="py-2.5 px-3 text-right font-bold text-slate-900">{{ "{:,.0f}".format(g.SoTien) }}đ</td>
-                        <td class="py-2.5 px-3 text-right text-slate-500">{{ "{:,.0f}".format(g.SoDuTruoc) }}đ</td>
-                        <td class="py-2.5 px-3 text-right font-semibold text-emerald-600">{{ "{:,.0f}".format(g.SoDuSau) }}đ</td>
-                        <td class="py-2.5 px-3 text-slate-500 text-[11px] font-sans">{{ g.ThoiGianGD }}</td>
-                        <td class="py-2.5 px-3 text-slate-600 font-sans text-xs truncate max-w-xs">{{ g.GhiChu }}</td>
+                        <td class="py-3 px-3 text-right font-bold {% if g.LoaiGD == 'Deposit' or g.LoaiGD == 'Refund' %}text-emerald-600{% else %}text-rose-600{% endif %}">
+                            {{ "{:,.0f}".format(g.SoTien) }}đ
+                        </td>
+                        <td class="py-3 px-3 text-right text-slate-500">{{ "{:,.0f}".format(g.SoDuTruoc) }}đ</td>
+                        <td class="py-3 px-3 text-right font-medium text-slate-800">{{ "{:,.0f}".format(g.SoDuSau) }}đ</td>
+                        <td class="py-3 px-3 text-slate-500">{{ g.ThoiGianGD }}</td>
+                        <td class="py-3 px-3 text-slate-600 max-w-xs truncate" title="{{ g.GhiChu }}">{{ g.GhiChu }}</td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="8" class="py-8 text-center text-slate-400 font-sans">Chưa có giao dịch sổ cái</td>
+                        <td colspan="8" class="py-8 text-center text-slate-400">Chưa có giao dịch biến động số dư</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
+    {% endif %}
 </div>
 {% endblock %}

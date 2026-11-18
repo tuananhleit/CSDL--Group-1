@@ -16,8 +16,8 @@ def create_app():
         return {
             "current_role": session.get("role", "customer"),
             "is_logged_in": session.get("logged_in", False),
-            "current_user_id": session.get("user_id", "KH01"),
-            "current_user_name": session.get("user_name", "Nguyễn Minh Khoa")
+            "current_user_id": session.get("user_id"),
+            "current_user_name": session.get("user_name")
         }
 
     from routes.auth import auth_bp
